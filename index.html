@@ -1,0 +1,1858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Black Diamond — Target Speed Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+:root{
+  --bg:#0a1118; --panel:#111c26; --panel2:#0d1620; --line:#223140;
+  --ink:#e9f2f7; --dim:#7c93a6; --faint:#4a6072;
+  --jib:#63b3ff; --spin:#ff6b66; --amber:#ffbe5c;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --cond:'Barlow Condensed','Arial Narrow',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--ink);font-family:var(--cond);min-height:100vh}
+.wrap{max-width:520px;margin:0 auto;padding:14px 14px 40px}
+
+/* header */
+header{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--line);padding-bottom:10px;margin-bottom:14px}
+.boat{font-size:26px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.boat span{color:var(--amber)}
+.meta{text-align:right;font-size:13px;line-height:1.35;color:var(--dim);letter-spacing:.08em;text-transform:uppercase}
+
+/* TWS control */
+.twsbox{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px 6px;margin-bottom:12px}
+.twsrow{display:flex;align-items:center;justify-content:space-between}
+.lbl{font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
+.twsval{font-family:var(--mono);font-size:44px;font-weight:700;line-height:1}
+.twsval small{font-size:15px;color:var(--dim);font-weight:400;margin-left:4px}
+.step{display:flex;gap:8px}
+.step button{width:46px;height:46px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-size:24px;font-family:var(--mono);cursor:pointer}
+.step button:active{background:var(--line)}
+input[type=range]{width:100%;margin:14px 0 10px;accent-color:var(--amber);height:28px}
+.ticks{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--faint);padding:0 2px 6px}
+
+/* mode tabs */
+.tabs{display:flex;gap:6px;margin-bottom:12px}
+.tabs button{flex:1;padding:11px 0;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--dim);font-family:var(--cond);font-size:16px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;cursor:pointer}
+.tabs button.on-up{background:#12283d;border-color:var(--jib);color:var(--jib)}
+.tabs button.on-dn{background:#3a1a1c;border-color:var(--spin);color:var(--spin)}
+.tabs button.on-cu{background:#3a2c12;border-color:var(--amber);color:var(--amber)}
+
+/* custom TWA slider */
+.custom{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px 4px;margin-bottom:12px;display:none}
+.custom.show{display:block}
+.custrow{display:flex;justify-content:space-between;align-items:baseline}
+.custval{font-family:var(--mono);font-size:30px;font-weight:700}
+
+/* big readout */
+.readout{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:12px}
+.rhead{padding:9px 16px;font-size:14px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;border-bottom:1px solid var(--line)}
+.rhead.up{color:var(--jib);background:#0f2032}
+.rhead.dn{color:var(--spin);background:#2b1517}
+.rhead.cu{color:var(--amber);background:#2b2210}
+.bigs{display:grid;grid-template-columns:1fr 1fr 1fr}
+.big{padding:14px 6px 12px;text-align:center;border-right:1px solid var(--line)}
+.big:last-child{border-right:none}
+.big .k{font-size:12px;letter-spacing:.16em;color:var(--dim);text-transform:uppercase;margin-bottom:4px}
+.big .v{font-family:var(--mono);font-size:34px;font-weight:700;line-height:1}
+.big .u{font-size:12px;color:var(--faint);font-family:var(--cond);margin-top:3px;letter-spacing:.08em}
+.smalls{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);background:var(--panel2)}
+.sm{padding:10px 4px;text-align:center;border-right:1px solid var(--line)}
+.sm:last-child{border-right:none}
+.sm .k{font-size:11px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase}
+.sm .v{font-family:var(--mono);font-size:17px;font-weight:500;margin-top:2px}
+.sailband{padding:9px 16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;font-size:15px}
+.sailband .name{font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.sailband .alt{font-family:var(--mono);font-size:12px;color:var(--dim)}
+.heelwarn{color:var(--amber)}
+
+/* polar */
+.polarbox{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 8px 4px;margin-bottom:12px}
+.polarbox svg{width:100%;height:auto;display:block;touch-action:none}
+.legend{display:flex;gap:16px;justify-content:center;padding:6px 0 8px;font-size:13px;color:var(--dim);letter-spacing:.06em}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:1px}
+.hint{text-align:center;font-size:12px;color:var(--faint);padding-bottom:8px;letter-spacing:.06em}
+
+/* waypoint / layline panel */
+.wp{background:var(--panel);border:1px solid var(--line);border-radius:10px;margin-bottom:12px;overflow:hidden}
+.wp-head{padding:10px 16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+.wp-head .lbl{font-size:14px;font-weight:600;letter-spacing:.18em;color:var(--ink)}
+.wp-head .chev{color:var(--dim);font-size:14px}
+.wp-body{display:none;border-top:1px solid var(--line);padding:12px 16px 14px}
+.wp.open .wp-body{display:block}
+.wp-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px}
+.wp-grid label{display:block}
+.wp-grid .k{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:4px}
+.wp-grid input{width:100%;padding:9px 8px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-family:var(--mono);font-size:18px;text-align:center;-moz-appearance:textfield}
+.wp-grid input::-webkit-outer-spin-button,.wp-grid input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.tackrow{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.tackrow .k{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);flex:0 0 auto}
+.tackrow .seg{display:flex;flex:1;gap:6px}
+.tackrow button{flex:1;padding:9px 0;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--dim);font-family:var(--cond);font-size:15px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+.tackrow button.sel-s{background:#0f3320;border-color:#3ecf74;color:#3ecf74}
+.tackrow button.sel-p{background:#3a1a1c;border-color:var(--spin);color:var(--spin)}
+.wp-out{border-top:1px solid var(--line);margin:0 -16px -14px;padding:12px 16px 14px;background:var(--panel2)}
+.wp-sit{font-size:15px;color:var(--dim);letter-spacing:.04em;margin-bottom:8px}
+.wp-sit b{color:var(--ink)}
+.cd{display:flex;align-items:baseline;gap:12px;margin-bottom:10px}
+.cd .t{font-family:var(--mono);font-size:44px;font-weight:700;line-height:1}
+.cd .t.now{color:var(--amber)}
+.cd .what{font-size:14px;color:var(--dim);text-transform:uppercase;letter-spacing:.14em;line-height:1.3}
+.wp-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.wp-stats .cell{background:var(--panel);padding:9px 4px;text-align:center}
+.wp-stats .k{font-size:11px;letter-spacing:.12em;color:var(--faint);text-transform:uppercase}
+.wp-stats .v{font-family:var(--mono);font-size:16px;font-weight:500;margin-top:2px}
+
+.posrow{display:flex;gap:8px;margin-bottom:6px}
+.posrow button{flex:0 0 auto;padding:9px 12px;border-radius:8px;border:1px solid #3ecf74;background:#0f3320;color:#3ecf74;font-family:var(--cond);font-size:14px;font-weight:600;letter-spacing:.08em;cursor:pointer}
+.posfields{display:flex;gap:8px;flex:1}
+.posfields input{width:100%;min-width:0;padding:9px 8px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-family:var(--mono);font-size:14px;text-align:center;-moz-appearance:textfield}
+.posfields input::-webkit-outer-spin-button,.posfields input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.gpsstat{font-size:12px;color:var(--faint);letter-spacing:.04em;min-height:16px;margin-bottom:8px}
+.gpsstat.err{color:var(--spin)}
+.gpsstat.ok{color:#3ecf74}
+.markrow{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.markrow .k{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);flex:0 0 auto}
+.markrow select{flex:1;padding:9px 8px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-family:var(--cond);font-size:15px}
+.nudges{display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.nudges .k{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.nudges button{min-width:44px;padding:9px 0;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-family:var(--mono);font-size:15px;cursor:pointer}
+.nudges button:active{background:var(--line)}
+.routetime{display:flex;align-items:center;gap:8px;padding:9px 12px 0;background:var(--panel);border-top:1px solid var(--line)}
+.routetime .k{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.routetime input{flex:1;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-family:var(--mono);font-size:13px;color-scheme:dark}
+.autonote{font-size:12px;color:var(--faint);letter-spacing:.04em;margin:-4px 0 10px;font-style:italic}
+.mapwrap{margin-top:12px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel)}
+.maprel{position:relative}
+#lakeMap{height:340px;width:100%;background:#0c1d2e}
+.windbadge{position:absolute;top:10px;right:10px;z-index:800;background:rgba(10,17,24,.85);border:1px solid var(--line);border-radius:8px;padding:6px 10px;display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:12px;color:var(--ink)}
+.windbadge .arr{display:inline-block;font-size:16px;line-height:1}
+.maplegend{display:flex;flex-wrap:wrap;gap:4px 14px;justify-content:center;padding:7px 8px 2px;font-size:12px;color:var(--dim);letter-spacing:.04em;background:var(--panel)}
+.maplegend i{display:inline-block;width:16px;height:0;border-top:3px solid;border-color:transparent;margin-right:5px;vertical-align:3px}
+.maplegend i:not(.dash){border:none;height:3px}
+.maplegend i.dash{border-top-style:dashed}
+.boatpin{width:16px;height:16px;border-radius:50%;background:#ffbe5c;border:3px solid #0a1118;box-shadow:0 0 0 2px #ffbe5c}
+.markpin{width:14px;height:14px;background:#ff5a5f;border:3px solid #0a1118;box-shadow:0 0 0 2px #ff5a5f;transform:rotate(45deg)}
+.tackpin{width:12px;height:12px;border-radius:50%;background:#0a1118;border:3px solid #ffbe5c}
+.mapnote{font-size:11px;color:var(--faint);text-align:center;padding:5px 8px 6px;letter-spacing:.06em;background:var(--panel);line-height:1.4}
+.fsbtn.armed{border-color:var(--amber);color:var(--amber)}
+.fsbtn{position:absolute;top:10px;right:10px;z-index:900;background:rgba(10,17,24,.85);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:var(--cond);font-size:13px;font-weight:600;padding:7px 10px;letter-spacing:.06em;cursor:pointer}
+.windbadge{top:52px}
+.maprel.fs{position:fixed;inset:0;z-index:2000;background:var(--bg)}
+.maprel.fs #lakeMap{height:100%}
+.tbar{position:absolute;left:10px;right:10px;bottom:10px;z-index:900;background:rgba(10,17,24,.88);border:1px solid var(--line);border-radius:10px;padding:8px 12px 6px}
+.tbar .tlab{font-family:var(--mono);font-size:13px;color:var(--amber);text-align:center;margin-bottom:2px}
+.tbar input[type=range]{width:100%;margin:2px 0 4px;accent-color:var(--amber);height:24px}
+.tchips{display:flex;justify-content:space-between;gap:6px;font-family:var(--mono);font-size:11px;color:var(--ink);flex-wrap:wrap}
+.tchips b{color:var(--amber);font-weight:500}
+.routerow{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--panel);border-top:1px solid var(--line)}
+.routerow select{flex:1;min-width:0;padding:9px 8px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-family:var(--cond);font-size:14px}
+.routerow button{padding:9px 12px;border-radius:8px;border:1px solid var(--jib);background:#12283d;color:var(--jib);font-family:var(--cond);font-size:14px;font-weight:600;letter-spacing:.06em;cursor:pointer}
+.routestat{font-size:12px;color:var(--faint);flex:1;line-height:1.3}
+.routesum{padding:10px 14px;background:var(--panel2);border-top:1px solid var(--line);font-size:14px;line-height:1.55;color:var(--dim)}
+.routesum b{color:var(--ink)}
+.routesum .c0note{display:block;margin-top:5px;font-size:12px;color:var(--faint);font-style:italic}
+/* trim guide */
+.trimhead{padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel2)}
+.trimhead .cond{font-size:16px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.trimhead .sub{font-size:13px;color:var(--dim);margin-top:2px;line-height:1.4}
+.trimrow{display:flex;padding:9px 16px;border-bottom:1px solid var(--line);gap:12px;align-items:baseline}
+.trimrow:last-child{border-bottom:none}
+.trimrow .ctl{flex:0 0 92px;font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--amber)}
+.trimrow .set{flex:1;font-size:14.5px;line-height:1.45;color:var(--ink)}
+.trimvpp{padding:10px 16px;background:var(--panel2);border-top:1px solid var(--line);font-size:13px;color:var(--dim);line-height:1.5}
+.trimvpp b{color:var(--ink)}
+.trkbtn{flex:0 0 auto;padding:9px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--dim);font-family:var(--cond);font-size:13px;font-weight:600;cursor:pointer}
+/* header right / night */
+.hdr-r{display:flex;align-items:flex-start;gap:10px}
+#nightBtn,#wakeBtn{width:38px;height:38px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--dim);font-size:18px;cursor:pointer}
+#wakeBtn.on{border-color:#3ecf74;color:#3ecf74}
+html.night{filter:sepia(.65) hue-rotate(-48deg) saturate(2.4) brightness(.82)}
+/* performance card */
+.perf{background:var(--panel);border:1px solid var(--line);border-radius:10px;margin-bottom:12px;overflow:hidden}
+.perfmain{display:flex;align-items:center;gap:14px;padding:12px 16px}
+.perf .pct{font-family:var(--mono);font-weight:700;font-size:46px;line-height:1;flex:0 0 auto}
+.perf .pct small{display:block;font-size:11px;color:var(--dim);font-family:var(--cond);letter-spacing:.14em;text-transform:uppercase;margin-top:3px}
+.pchips{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px 14px;flex:1}
+.pchips .k{font-size:10px;letter-spacing:.12em;color:var(--faint);text-transform:uppercase;display:block}
+.pchips b{font-family:var(--mono);font-size:16px;font-weight:500}
+.perfnote{padding:6px 16px 8px;font-size:12px;color:var(--faint);border-top:1px solid var(--line)}
+.pct.good{color:#3ecf74}.pct.ok{color:var(--amber)}.pct.bad{color:var(--spin)}
+/* sun strip */
+.sunstrip{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 14px;margin-bottom:12px;font-family:var(--mono);font-size:13px;color:var(--ink);display:flex;gap:16px;flex-wrap:wrap;justify-content:center}
+.sunstrip span{color:var(--dim)}
+/* course */
+.course{border:1px solid var(--line);border-radius:8px;margin-bottom:10px;overflow:hidden}
+.course-hd{display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--panel2);border-bottom:1px solid var(--line)}
+.course-hd .k{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.course-hd span#legLbl{flex:1;font-size:13px;color:var(--amber);font-family:var(--mono)}
+.courseitem{display:flex;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid var(--line);font-size:14px}
+.courseitem:last-child{border-bottom:none}
+.courseitem .n{flex:1}
+.courseitem.active .n{color:var(--amber);font-weight:600}
+.courseitem .x{color:var(--spin);background:none;border:none;font-size:16px;cursor:pointer;padding:2px 6px}
+/* shifts / start */
+.shiftrow{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.shiftverdict{font-size:14px;line-height:1.5;color:var(--dim);padding-bottom:8px}
+.shiftverdict b{color:var(--ink)}
+.xover{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-bottom:12px;font-size:15px;line-height:1.5;color:var(--dim)}
+.xover b{color:var(--ink)}
+footer{font-size:12px;color:var(--faint);line-height:1.5;letter-spacing:.04em;padding-top:4px}
+footer a{color:var(--dim)}
+@media (prefers-reduced-motion:no-preference){.big .v,.twsval{transition:color .15s}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="boat">Black <span>◆</span> Diamond</div>
+    <div class="hdr-r">
+      <button id="wakeBtn" title="keep screen awake">⏾</button>
+      <button id="nightBtn" title="night mode">☾</button>
+      <div class="meta">Santa Cruz 37 · USA 60937<br>ORC VPP Targets</div>
+    </div>
+  </header>
+
+  <div class="twsbox">
+    <div class="twsrow">
+      <div>
+        <div class="lbl">True Wind Speed</div>
+        <div class="twsval"><span id="twsNum">10.0</span><small>kts</small></div>
+      </div>
+      <div class="step">
+        <button id="twsDown" aria-label="decrease wind">−</button>
+        <button id="twsUp" aria-label="increase wind">+</button>
+      </div>
+    </div>
+    <input type="range" id="twsSlider" min="6" max="20" step="0.5" value="10" aria-label="true wind speed">
+    <div class="ticks"><span>6</span><span>8</span><span>10</span><span>12</span><span>14</span><span>16</span><span>18</span><span>20</span></div>
+  </div>
+
+  <div class="perf" id="perfBox" style="display:none">
+    <div class="perfmain">
+      <div class="pct"><span id="pfPct">—</span><small>% polar</small></div>
+      <div class="pchips">
+        <div><span class="k">SOG</span><b id="pfSog">—</b></div>
+        <div><span class="k">COG</span><b id="pfCog">—</b></div>
+        <div><span class="k">TWA</span><b id="pfTwa">—</b></div>
+        <div><span class="k">TGT</span><b id="pfTgt">—</b></div>
+        <div><span class="k">VMG&nbsp;wind</span><b id="pfVmgW">—</b></div>
+        <div><span class="k">VMC&nbsp;mark</span><b id="pfVmgM">—</b></div>
+      </div>
+    </div>
+    <div class="perfnote" id="pfNote">Live from GPS — needs Wind Dir set in the waypoint panel</div>
+  </div>
+
+  <div class="sunstrip" id="sunStrip" style="display:none"></div>
+
+  <div class="tabs">
+    <button id="tabUp">Upwind</button>
+    <button id="tabDn">Downwind</button>
+    <button id="tabCu">Any TWA</button>
+  </div>
+
+  <div class="custom" id="customBox">
+    <div class="custrow">
+      <div class="lbl">True Wind Angle</div>
+      <div class="custval"><span id="twaNum">90</span>°</div>
+    </div>
+    <input type="range" id="twaSlider" min="35" max="180" step="1" value="90" aria-label="true wind angle">
+  </div>
+
+  <div class="readout">
+    <div class="rhead up" id="rhead">Upwind Target — Best VMG</div>
+    <div class="bigs">
+      <div class="big"><div class="k">Target TWA</div><div class="v" id="oTwa">—</div><div class="u">degrees</div></div>
+      <div class="big"><div class="k">Boat Speed</div><div class="v" id="oBsp">—</div><div class="u">knots</div></div>
+      <div class="big"><div class="k">VMG</div><div class="v" id="oVmg">—</div><div class="u">knots</div></div>
+    </div>
+    <div class="smalls">
+      <div class="sm"><div class="k">AWA</div><div class="v" id="oAwa">—</div></div>
+      <div class="sm"><div class="k">AWS</div><div class="v" id="oAws">—</div></div>
+      <div class="sm"><div class="k">Heel</div><div class="v" id="oHeel">—</div></div>
+      <div class="sm"><div class="k">Gybe/Tack ∠</div><div class="v" id="oGybe">—</div></div>
+    </div>
+    <div class="sailband">
+      <div><span class="k" style="font-size:12px;letter-spacing:.16em;color:var(--faint);text-transform:uppercase">Sail&nbsp;&nbsp;</span><span class="name" id="oSail">—</span></div>
+      <div class="alt" id="oSailAlt"></div>
+    </div>
+  </div>
+
+  <div class="wp" id="wpBox">
+    <div class="wp-head" id="wpToggle">
+      <span class="lbl">Waypoint &amp; Laylines</span>
+      <span class="chev" id="wpChev">▸ optional</span>
+    </div>
+    <div class="wp-body">
+      <div class="posrow">
+        <button id="btnGps">◉ Use my GPS</button>
+        <button class="trkbtn" id="btnTrk">⌫ Track</button>
+        <button class="trkbtn" id="btnGpx">⬇ GPX</button>
+        <div class="posfields">
+          <input type="number" id="inLat" inputmode="decimal" step="0.0001" placeholder="Boat lat">
+          <input type="number" id="inLon" inputmode="decimal" step="0.0001" placeholder="Boat lon">
+        </div>
+      </div>
+      <div class="gpsstat" id="gpsStat"></div>
+      <div class="markrow">
+        <span class="k">Mark</span>
+        <button class="trkbtn" id="btnMac" style="border-color:var(--amber);color:var(--amber)">⚑ Mac course</button>
+        <select id="selMark">
+          <option value="">Manual entry</option>
+          <option value="44.6917,-86.2556">Point Betsie (approx)</option>
+          <option value="45.7650,-85.1533">Gray's Reef Light (approx)</option>
+          <option value="45.8480,-84.6300">Mackinac Is. finish (approx)</option>
+          <option value="41.8890,-87.5900">Chicago Light (approx)</option>
+        </select>
+      </div>
+      <div class="posfields" style="margin-bottom:8px">
+        <input type="number" id="inMlat" inputmode="decimal" step="0.0001" placeholder="Mark lat">
+        <input type="number" id="inMlon" inputmode="decimal" step="0.0001" placeholder="Mark lon">
+        <button class="trkbtn" id="btnAddWp" style="border-color:#3ecf74;color:#3ecf74">＋ Course</button>
+      </div>
+      <div class="course" id="courseBox" style="display:none">
+        <div class="course-hd"><span class="k">Course</span><span id="legLbl"></span><button class="trkbtn" id="btnNextLeg">Next leg ▸</button></div>
+        <div id="courseList"></div>
+      </div>
+      <div class="wp-grid">
+        <label><span class="k">Wind Dir °T</span><input type="number" id="inTwd" inputmode="numeric" min="0" max="359" placeholder="—"></label>
+        <label><span class="k">Brg to Mark °T</span><input type="number" id="inBtw" inputmode="numeric" min="0" max="359" placeholder="—"></label>
+        <label><span class="k">Dist NM</span><input type="number" id="inDtw" inputmode="decimal" min="0" step="0.1" placeholder="—"></label>
+      </div>
+      <div class="nudges">
+        <span class="k">TWD</span>
+        <button data-twd="-5">−5</button><button data-twd="-1">−1</button><button data-twd="1">+1</button><button data-twd="5">+5</button>
+        <span class="k" style="margin-left:8px">TWS</span>
+        <button data-tws="-1">−1</button><button data-tws="1">+1</button>
+      </div>
+      <div class="autonote" id="autoNote" style="display:none">Bearing &amp; distance computed from GPS + mark position</div>
+      <div class="tackrow">
+        <span class="k">Current board</span>
+        <div class="seg">
+          <button id="tkS">Starboard</button>
+          <button id="tkP">Port</button>
+        </div>
+      </div>
+      <div class="wp-out" id="wpOut" style="display:none">
+        <div class="wp-sit" id="wpSit"></div>
+        <div class="cd" id="wpCd" style="display:none">
+          <div class="t" id="cdT">—</div>
+          <div class="what" id="cdWhat"></div>
+        </div>
+        <div class="wp-stats" id="wpStats"></div>
+        <div class="mapwrap" id="mapWrap" style="display:none">
+          <div class="maprel">
+            <div id="lakeMap"></div>
+            <div class="windbadge" id="windBadge"><span class="arr" id="windArr">↓</span><span id="windTxt"></span></div>
+            <button class="fsbtn" id="fsBtn">⛶ Full</button>
+            <button class="fsbtn" id="moveBtn" style="top:auto;bottom:64px">📍 Move start</button>
+            <div class="tbar" id="tBar" style="display:none">
+              <div class="tlab" id="tLabel">Now</div>
+              <input type="range" id="tSlider" min="0" max="48" step="0.5" value="0">
+              <div class="tchips" id="tChips"></div>
+            </div>
+          </div>
+          <div class="routetime">
+            <span class="k">Start</span>
+            <input type="datetime-local" id="inStart">
+            <button class="trkbtn" id="btnStartNow">Now</button>
+          </div>
+          <div class="routerow">
+            <select id="selModel">
+              <option value="best_match" selected>Best match (auto hi-res)</option>
+              <option value="gfs_seamless">GFS</option>
+              <option value="ecmwf_ifs025">ECMWF</option>
+              <option value="gfs_hrrr">HRRR (≤48h, hi-res)</option>
+            </select>
+            <button id="btnRoute">⟳ Route</button>
+            <span class="routestat" id="routeStat"></span>
+          </div>
+          <div class="routesum" id="routeSum" style="display:none"></div>
+          <div class="routerow">
+            <input type="text" id="inYbRace" placeholder="YB race key (e.g. chimac2026)" style="flex:1;min-width:0;padding:9px 8px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-family:var(--mono);font-size:13px">
+            <button class="trkbtn" id="btnYb" style="border-color:#c792ff;color:#c792ff">⛵ Fleet</button>
+            <button class="trkbtn" id="btnYbAuto">⟳ 5m</button>
+          </div>
+          <div class="routerow" id="ybFilterRow" style="display:none">
+            <select id="ybClass" style="flex:1;min-width:0;padding:9px 8px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-family:var(--cond);font-size:14px">
+              <option value="">All fleet</option>
+            </select>
+            <input type="text" id="ybText" placeholder="name filter" style="flex:1;min-width:0;padding:9px 8px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-family:var(--mono);font-size:13px">
+          </div>
+          <div class="routesum" id="ybStat" style="display:none"></div>
+          <div class="maplegend">
+            <span><i style="background:#2fbf5f"></i>stbd layline</span>
+            <span><i style="background:#ff5a5f"></i>port layline</span>
+            <span><i style="background:#63b3ff"></i>route: Jib</span>
+            <span><i style="background:#ffe066"></i>Code 0 (est)</span>
+            <span><i style="background:#ff6b66"></i>A2</span>
+            <span><i style="background:#ffbe5c"></i>layline route</span>
+          </div>
+          <div class="mapnote">OpenSeaMap / NOAA — strategy aid only, not for navigation. Router holds ≥2 nm off land/islands/shoals (approx geometry) with charted-channel corridors; ignores current. Verify gates vs chart &amp; SIs.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="polarbox">
+    <svg id="polar" viewBox="0 0 340 600" role="img" aria-label="polar diagram"></svg>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--jib)"></span>Beat target</span>
+      <span><span class="dot" style="background:var(--spin)"></span>Run target</span>
+      <span><span class="dot" style="background:var(--amber)"></span>Your TWA</span>
+    </div>
+    <div class="hint">Tap or drag on the curve to set a custom TWA</div>
+  </div>
+
+  <div class="xover" id="xover"></div>
+
+  <div class="wp" id="trimBox">
+    <div class="wp-head" id="trimToggle">
+      <span class="lbl">Trim Guide</span>
+      <span class="chev" id="trimChev">▸</span>
+    </div>
+    <div class="wp-body" id="trimBody" style="padding:0"></div>
+  </div>
+
+  <div class="wp" id="shiftBox">
+    <div class="wp-head" id="shiftToggle"><span class="lbl">Wind Shifts</span><span class="chev" id="shiftChev">▸</span></div>
+    <div class="wp-body">
+      <div class="shiftrow"><button class="trkbtn" id="btnLogWind">⊕ Log current wind</button><span class="gpsstat" id="shiftStat">Logs automatically when you change Wind Dir</span></div>
+      <svg id="shiftChart" viewBox="0 0 320 90" style="width:100%;display:none"></svg>
+      <div class="shiftverdict" id="shiftVerdict"></div>
+    </div>
+  </div>
+
+  <div class="wp" id="startBox">
+    <div class="wp-head" id="startToggle"><span class="lbl">Start Line</span><span class="chev" id="startChev">▸</span></div>
+    <div class="wp-body">
+      <div class="shiftrow">
+        <button class="trkbtn" id="btnPingBoat">◉ Ping boat end</button>
+        <button class="trkbtn" id="btnPingPin">◉ Ping pin end</button>
+        <span class="gpsstat" id="startStat">Sail to each end and ping it (uses GPS position)</span>
+      </div>
+      <div class="wp-stats" id="startStats" style="display:none;margin-bottom:10px"></div>
+      <div class="shiftrow">
+        <button class="trkbtn" id="t5">5:00</button><button class="trkbtn" id="t4">4:00</button><button class="trkbtn" id="t1">1:00</button><button class="trkbtn" id="tSync">Sync ▲</button>
+        <div class="cd" style="margin:0"><div class="t" id="startCd" style="font-size:34px">—:—</div></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Source: ORC Speed Guide VPP for BLACK DIAMOND (cert 045600027A1), TWS 6–20 kts. Values between table winds are linearly interpolated; outside 6–20 kts the guide clamps to the nearest table wind. Targets assume flat water and full crew weight — in Lake Michigan chop, sail a touch lower and faster upwind.
+  </footer>
+</div>
+<script>
+/* DATA injected below: [sail, tws, cond, twa, btv, vmg, aws, awa, heel] */
+const RAW = [["BestPerf",6.0,"beat",43.0,5.333,3.9003,10.5473,22.83,4.6614],["BestPerf",6.0,"run",143.0,5.2489,4.192,3.6397,82.79,0.0953],["BestPerf",6.0,"reach",52.0,5.9573,3.6677,10.7472,26.1,4.9737],["BestPerf",6.0,"reach",60.0,6.3168,3.1584,10.6678,29.15,4.6053],["BestPerf",6.0,"reach",70.0,6.5679,2.2464,10.3002,33.19,3.4855],["BestPerf",6.0,"reach",75.0,6.6219,1.7139,10.0208,35.33,2.6813],["BestPerf",6.0,"reach",80.0,6.6277,1.1509,9.6818,37.61,1.7921],["BestPerf",6.0,"reach",90.0,6.51,0.0,8.8533,42.67,0.011],["BestPerf",6.0,"reach",110.0,6.6605,2.278,7.2819,50.74,5.4148],["BestPerf",6.0,"reach",120.0,6.4932,3.2466,6.2612,56.09,2.0726],["BestPerf",6.0,"reach",135.0,5.7492,4.0653,4.5022,70.45,0.1391],["BestPerf",6.0,"reach",150.0,4.7576,4.1202,3.0319,98.32,5.0792],["BestPerf",6.0,"reach",165.0,3.4703,3.3521,2.7961,146.26,4.7942],["BestPerf",6.0,"reach",180.0,3.2103,3.2103,2.7897,180.0,4.7178],["Jib",6.0,"beat",43.0,5.333,3.9003,10.5473,22.83,4.6614],["Jib",6.0,"run",166.4,3.2022,3.1124,2.9841,151.78,7.2257],["Jib",6.0,"reach",52.0,5.9573,3.6677,10.7472,26.1,4.9737],["Jib",6.0,"reach",60.0,6.3168,3.1584,10.6678,29.15,4.6053],["Jib",6.0,"reach",70.0,6.5679,2.2464,10.3002,33.19,3.4855],["Jib",6.0,"reach",75.0,6.6219,1.7139,10.0208,35.33,2.6813],["Jib",6.0,"reach",80.0,6.6277,1.1509,9.6818,37.61,1.7921],["Jib",6.0,"reach",90.0,6.51,0.0,8.8533,42.67,0.011],["Jib",6.0,"reach",110.0,5.7416,1.9637,6.738,56.8,0.0236],["Jib",6.0,"reach",120.0,5.1375,2.5688,5.6186,67.64,0.0003],["Jib",6.0,"reach",135.0,4.1281,2.919,4.2442,91.55,0.0212],["Jib",6.0,"reach",150.0,3.503,3.0337,3.4448,119.44,4.8685],["Jib",6.0,"reach",165.0,3.2181,3.1084,3.0091,148.93,4.7868],["Jib",6.0,"reach",180.0,3.0948,3.0948,2.9052,180.0,4.7199],["AsymCL",6.0,"beat",48.0,0.01,0.0067,6.0067,47.93,21.5],["AsymCL",6.0,"run",143.0,5.2489,4.192,3.6397,82.79,0.0953],["AsymCL",6.0,"reach",52.0,0.01,0.0062,6.0062,51.92,21.5],["AsymCL",6.0,"reach",60.0,4.335,2.1675,8.989,35.31,3.4749],["AsymCL",6.0,"reach",70.0,5.3159,1.8181,9.2777,37.42,6.8647],["AsymCL",6.0,"reach",75.0,5.7043,1.4764,9.2874,38.61,8.3324],["AsymCL",6.0,"reach",80.0,6.0305,1.0472,9.2159,39.88,9.6026],["AsymCL",6.0,"reach",90.0,6.4932,0.0,8.8409,42.74,10.423],["AsymCL",6.0,"reach",110.0,6.6605,2.278,7.2819,50.74,5.4148],["AsymCL",6.0,"reach",120.0,6.4932,3.2466,6.2612,56.09,2.0726],["AsymCL",6.0,"reach",135.0,5.7492,4.0653,4.5022,70.45,0.1391],["AsymCL",6.0,"reach",150.0,4.7576,4.1202,3.0319,98.32,5.0792],["AsymCL",6.0,"reach",165.0,3.4703,3.3521,2.7961,146.26,4.7942],["AsymCL",6.0,"reach",180.0,3.2103,3.2103,2.7897,180.0,4.7178],["BestPerf",8.0,"beat",41.7999,6.4758,4.8276,13.5343,23.2,14.8275],["BestPerf",8.0,"run",144.2,6.5611,5.3215,4.6802,89.11,0.3426],["BestPerf",8.0,"reach",52.0,7.2375,4.4558,13.6995,27.4,16.2987],["BestPerf",8.0,"reach",60.0,7.5183,3.7591,13.4414,31.03,14.7569],["BestPerf",8.0,"reach",70.0,7.6661,2.622,12.8343,35.86,11.7222],["BestPerf",8.0,"reach",75.0,7.6916,1.9907,12.4504,38.36,10.0327],["BestPerf",8.0,"reach",80.0,7.6934,1.3359,12.0235,40.94,8.2986],["BestPerf",8.0,"reach",90.0,7.628,0.0,11.0538,46.36,4.85],["BestPerf",8.0,"reach",110.0,7.8839,2.6965,9.1111,55.6,16.5302],["BestPerf",8.0,"reach",120.0,7.8218,3.9109,7.9124,61.12,10.2801],["BestPerf",8.0,"reach",135.0,7.344,5.193,5.9031,73.39,0.1997],["BestPerf",8.0,"reach",150.0,6.097,5.2802,4.0854,101.74,5.328],["BestPerf",8.0,"reach",165.0,4.5861,4.4298,3.7623,146.61,6.4085],["BestPerf",8.0,"reach",180.0,4.2621,4.2621,3.7379,180.0,4.7371],["Jib",8.0,"beat",41.7999,6.4758,4.8276,13.5343,23.2,14.8275],["Jib",8.0,"run",168.2,4.2255,4.1362,3.9592,155.59,10.5306],["Jib",8.0,"reach",52.0,7.2375,4.4558,13.6995,27.4,16.2987],["Jib",8.0,"reach",60.0,7.5183,3.7591,13.4414,31.03,14.7569],["Jib",8.0,"reach",70.0,7.6661,2.622,12.8343,35.86,11.7222],["Jib",8.0,"reach",75.0,7.6916,1.9907,12.4504,38.36,10.0327],["Jib",8.0,"reach",80.0,7.6934,1.3359,12.0235,40.94,8.2986],["Jib",8.0,"reach",90.0,7.628,0.0,11.0538,46.36,4.85],["Jib",8.0,"reach",110.0,7.0357,2.4064,8.6602,60.23,0.0092],["Jib",8.0,"reach",120.0,6.3753,3.1877,7.3241,71.08,0.0196],["Jib",8.0,"reach",135.0,5.3111,3.7555,5.6674,93.5,0.1716],["Jib",8.0,"reach",150.0,4.6179,3.9992,4.6193,120.01,5.0032],["Jib",8.0,"reach",165.0,4.2726,4.127,4.0278,149.06,7.0151],["Jib",8.0,"reach",180.0,4.1148,4.1148,3.8852,180.0,4.7411],["AsymCL",8.0,"beat",48.0,0.01,0.0067,8.0067,47.95,21.5],["AsymCL",8.0,"run",144.2,6.5611,5.3215,4.6802,89.11,0.3426],["AsymCL",8.0,"reach",52.0,0.01,0.0062,8.0062,51.94,21.5],["AsymCL",8.0,"reach",60.0,5.5441,2.772,11.7936,35.98,15.0476],["AsymCL",8.0,"reach",70.0,6.5535,2.2414,11.9504,38.98,21.7085],["AsymCL",8.0,"reach",75.0,6.9044,1.787,11.8433,40.73,21.6953],["AsymCL",8.0,"reach",80.0,7.1854,1.2477,11.6445,42.58,21.7622],["AsymCL",8.0,"reach",90.0,7.5739,0.0,11.0165,46.57,21.7506],["AsymCL",8.0,"reach",110.0,7.8839,2.6965,9.1111,55.6,16.5302],["AsymCL",8.0,"reach",120.0,7.8218,3.9109,7.9124,61.12,10.2801],["AsymCL",8.0,"reach",135.0,7.344,5.193,5.9031,73.39,0.1997],["AsymCL",8.0,"reach",150.0,6.097,5.2802,4.0854,101.74,5.328],["AsymCL",8.0,"reach",165.0,4.5861,4.4298,3.7623,146.61,6.4085],["AsymCL",8.0,"reach",180.0,4.2621,4.2621,3.7379,180.0,4.7371],["BestPerf",10.0,"beat",39.5999,6.9175,5.33,15.9516,23.55,22.311],["BestPerf",10.0,"run",148.025,7.486,6.3502,5.3885,100.66,2.7362],["BestPerf",10.0,"reach",52.0,7.7113,4.7476,15.9504,29.61,24.8639],["BestPerf",10.0,"reach",60.0,7.9515,3.9757,15.5802,33.77,24.3997],["BestPerf",10.0,"reach",70.0,8.1296,2.7805,14.8896,39.13,21.3822],["BestPerf",10.0,"reach",75.0,8.1784,2.1167,14.4645,41.9,18.6774],["BestPerf",10.0,"reach",80.0,8.1959,1.4232,13.987,44.76,15.7162],["BestPerf",10.0,"reach",90.0,8.1506,0.0,12.9009,50.82,10.0735],["BestPerf",10.0,"reach",110.0,8.3754,2.8646,10.6234,62.2,21.6909],["BestPerf",10.0,"reach",120.0,8.5074,4.2537,9.3435,67.95,19.2416],["BestPerf",10.0,"reach",135.0,8.1587,5.7691,7.1542,81.26,3.5354],["BestPerf",10.0,"reach",150.0,7.3185,6.338,5.1769,105.02,4.9998],["BestPerf",10.0,"reach",165.0,5.6146,5.4233,4.8019,147.38,9.7505],["BestPerf",10.0,"reach",180.0,5.2538,5.2538,4.7462,180.0,10.1642],["Jib",10.0,"beat",39.5999,6.9175,5.33,15.9516,23.55,22.311],["Jib",10.0,"run",171.2,5.1583,5.0976,4.9655,162.06,10.9534],["Jib",10.0,"reach",52.0,7.7113,4.7476,15.9504,29.61,24.8639],["Jib",10.0,"reach",60.0,7.9515,3.9757,15.5802,33.77,24.3997],["Jib",10.0,"reach",70.0,8.1296,2.7805,14.8896,39.13,21.3822],["Jib",10.0,"reach",75.0,8.1784,2.1167,14.4645,41.9,18.6774],["Jib",10.0,"reach",80.0,8.1959,1.4232,13.987,44.76,15.7162],["Jib",10.0,"reach",90.0,8.1506,0.0,12.9009,50.82,10.0735],["Jib",10.0,"reach",110.0,7.793,2.6654,10.3645,65.05,0.5882],["Jib",10.0,"reach",120.0,7.3956,3.6978,8.9855,74.54,0.0635],["Jib",10.0,"reach",135.0,6.3509,4.4908,7.1076,95.82,0.0815],["Jib",10.0,"reach",150.0,5.6339,4.8791,5.8446,121.19,6.1079],["Jib",10.0,"reach",165.0,5.2595,5.0803,5.1046,149.53,10.7155],["Jib",10.0,"reach",180.0,5.0814,5.0814,4.9186,180.0,10.1642],["AsymCL",10.0,"beat",48.0,0.01,0.0067,10.0067,47.96,21.5],["AsymCL",10.0,"run",148.025,7.486,6.3502,5.3885,100.66,2.7362],["AsymCL",10.0,"reach",52.0,0.01,0.0062,10.0062,51.95,21.5],["AsymCL",10.0,"reach",60.0,6.1525,3.0762,14.1201,37.83,21.5659],["AsymCL",10.0,"reach",70.0,7.069,2.4177,14.0828,41.86,21.7601],["AsymCL",10.0,"reach",75.0,7.3784,1.9097,13.8793,44.1,21.8133],["AsymCL",10.0,"reach",80.0,7.6084,1.3212,13.5761,46.5,21.8046],["AsymCL",10.0,"reach",90.0,7.9226,0.0,12.758,51.61,21.767],["AsymCL",10.0,"reach",110.0,8.3754,2.8646,10.6234,62.2,21.6909],["AsymCL",10.0,"reach",120.0,8.5074,4.2537,9.3435,67.95,19.2416],["AsymCL",10.0,"reach",135.0,8.1587,5.7691,7.1542,81.26,3.5354],["AsymCL",10.0,"reach",150.0,7.3185,6.338,5.1769,105.02,4.9998],["AsymCL",10.0,"reach",165.0,5.6146,5.4233,4.8019,147.38,9.7505],["AsymCL",10.0,"reach",180.0,5.2538,5.2538,4.7462,180.0,10.1642],["BestPerf",12.0,"beat",38.7,7.0769,5.523,18.0731,24.53,24.0528],["BestPerf",12.0,"run",151.8501,7.9991,7.0529,6.2221,114.51,5.7311],["BestPerf",12.0,"reach",52.0,7.8649,4.8421,17.9462,31.8,25.7771],["BestPerf",12.0,"reach",60.0,8.107,4.0535,17.5216,36.38,26.3653],["BestPerf",12.0,"reach",70.0,8.3645,2.8608,16.8114,42.13,26.5144],["BestPerf",12.0,"reach",75.0,8.4875,2.1967,16.3939,44.99,25.8059],["BestPerf",12.0,"reach",80.0,8.5821,1.4903,15.9191,47.93,23.6582],["BestPerf",12.0,"reach",90.0,8.6354,0.0,14.7841,54.26,16.9326],["BestPerf",12.0,"reach",110.0,8.7649,2.9978,12.2015,67.54,21.8038],["BestPerf",12.0,"reach",120.0,9.0714,4.5357,10.8367,73.54,21.7296],["BestPerf",12.0,"reach",135.0,8.9067,6.298,8.4957,87.16,7.6367],["BestPerf",12.0,"reach",150.0,8.1168,7.0294,6.417,110.77,5.935],["BestPerf",12.0,"reach",165.0,6.6236,6.3979,5.8585,147.99,9.2551],["BestPerf",12.0,"reach",180.0,6.2055,6.2055,5.7945,180.0,10.5707],["Jib",12.0,"beat",38.7,7.0769,5.523,18.0731,24.53,24.0528],["Jib",12.0,"run",171.8,6.0569,5.995,6.0668,163.61,11.0751],["Jib",12.0,"reach",52.0,7.8649,4.8421,17.9462,31.8,25.7771],["Jib",12.0,"reach",60.0,8.107,4.0535,17.5216,36.38,26.3653],["Jib",12.0,"reach",70.0,8.3645,2.8608,16.8114,42.13,26.5144],["Jib",12.0,"reach",75.0,8.4875,2.1967,16.3939,44.99,25.8059],["Jib",12.0,"reach",80.0,8.5821,1.4903,15.9191,47.93,23.6582],["Jib",12.0,"reach",90.0,8.6354,0.0,14.7841,54.26,16.9326],["Jib",12.0,"reach",110.0,8.2392,2.818,12.0105,69.86,3.2992],["Jib",12.0,"reach",120.0,7.9454,3.9727,10.5728,79.4,0.0296],["Jib",12.0,"reach",135.0,7.2771,5.1457,8.5709,98.1,5.7927],["Jib",12.0,"reach",150.0,6.5812,5.6995,7.1081,122.42,8.5883],["Jib",12.0,"reach",165.0,6.1773,5.9668,6.2414,150.16,11.9208],["Jib",12.0,"reach",180.0,5.9808,5.9808,6.0192,180.0,10.5753],["AsymCL",12.0,"beat",48.0,0.01,0.0067,12.0067,47.96,21.5],["AsymCL",12.0,"run",151.8501,7.9991,7.0529,6.2221,114.51,5.7311],["AsymCL",12.0,"reach",52.0,0.01,0.0062,12.0062,51.96,21.5],["AsymCL",12.0,"reach",60.0,6.4999,3.2499,16.2557,39.74,21.5417],["AsymCL",12.0,"reach",70.0,7.3798,2.524,16.0947,44.48,21.8127],["AsymCL",12.0,"reach",75.0,7.6497,1.9799,15.8125,47.14,21.9022],["AsymCL",12.0,"reach",80.0,7.8486,1.3629,15.4373,49.95,21.7821],["AsymCL",12.0,"reach",90.0,8.1621,0.0,14.5127,55.78,21.7477],["AsymCL",12.0,"reach",110.0,8.7649,2.9978,12.2015,67.54,21.8038],["AsymCL",12.0,"reach",120.0,9.0714,4.5357,10.8367,73.54,21.7296],["AsymCL",12.0,"reach",135.0,8.9067,6.298,8.4957,87.16,7.6367],["AsymCL",12.0,"reach",150.0,8.1168,7.0294,6.417,110.77,5.935],["AsymCL",12.0,"reach",165.0,6.6236,6.3979,5.8585,147.99,9.2551],["AsymCL",12.0,"reach",180.0,6.2055,6.2055,5.7945,180.0,10.5707],["BestPerf",14.0,"beat",38.3999,7.1768,5.6244,20.1244,25.6,22.2965],["BestPerf",14.0,"run",148.7,8.8349,7.5491,7.9172,113.27,3.8666],["BestPerf",14.0,"reach",52.0,7.9419,4.8895,19.8993,33.67,26.7365],["BestPerf",14.0,"reach",60.0,8.1956,4.0978,19.4398,38.59,27.2349],["BestPerf",14.0,"reach",70.0,8.503,2.9082,18.7011,44.71,28.0198],["BestPerf",14.0,"reach",75.0,8.6615,2.2418,18.2699,47.75,28.3558],["BestPerf",14.0,"reach",80.0,8.8169,1.531,17.7934,50.79,28.1959],["BestPerf",14.0,"reach",90.0,9.0727,0.0,16.6827,57.05,23.6975],["BestPerf",14.0,"reach",110.0,9.1381,3.1254,13.8562,71.7,21.7882],["BestPerf",14.0,"reach",120.0,9.5459,4.773,12.3888,78.14,21.7633],["BestPerf",14.0,"reach",135.0,9.7843,6.9185,9.9002,90.67,13.2053],["BestPerf",14.0,"reach",150.0,8.7058,7.5394,7.7902,116.03,4.9183],["BestPerf",14.0,"reach",165.0,7.4911,7.2358,7.0365,149.01,10.1208],["BestPerf",14.0,"reach",180.0,7.1042,7.1042,6.8958,180.0,10.6457],["Jib",14.0,"beat",38.3999,7.1768,5.6244,20.1244,25.6,22.2965],["Jib",14.0,"run",173.6,6.8985,6.8555,7.1858,167.46,11.5149],["Jib",14.0,"reach",52.0,7.9419,4.8895,19.8993,33.67,26.7365],["Jib",14.0,"reach",60.0,8.1956,4.0978,19.4398,38.59,27.2349],["Jib",14.0,"reach",70.0,8.503,2.9082,18.7011,44.71,28.0198],["Jib",14.0,"reach",75.0,8.6615,2.2418,18.2699,47.75,28.3558],["Jib",14.0,"reach",80.0,8.8169,1.531,17.7934,50.79,28.1959],["Jib",14.0,"reach",90.0,9.0727,0.0,16.6827,57.05,23.6975],["Jib",14.0,"reach",110.0,8.7324,2.9867,13.7342,73.31,6.789],["Jib",14.0,"reach",120.0,8.374,4.187,12.202,83.53,1.3431],["Jib",14.0,"reach",135.0,7.8638,5.5605,10.1066,101.62,6.1756],["Jib",14.0,"reach",150.0,7.4193,6.4253,8.4343,123.91,8.5538],["Jib",14.0,"reach",165.0,7.051,6.8107,7.4173,150.76,12.8401],["Jib",14.0,"reach",180.0,6.8417,6.8417,7.1583,180.0,10.8289],["AsymCL",14.0,"beat",47.9999,0.01,0.0067,14.0067,47.97,21.5],["AsymCL",14.0,"run",148.7,8.8349,7.5491,7.9172,113.27,3.8666],["AsymCL",14.0,"reach",52.0,0.01,0.0062,14.0062,51.97,21.5],["AsymCL",14.0,"reach",60.0,6.718,3.359,18.308,41.47,21.7284],["AsymCL",14.0,"reach",70.0,7.5674,2.5882,18.0481,46.8,21.9251],["AsymCL",14.0,"reach",75.0,7.815,2.0227,17.7118,49.77,21.8898],["AsymCL",14.0,"reach",80.0,8.0104,1.391,17.2949,52.86,21.8029],["AsymCL",14.0,"reach",90.0,8.3659,0.0,16.3091,59.14,21.7044],["AsymCL",14.0,"reach",110.0,9.1381,3.1254,13.8562,71.7,21.7882],["AsymCL",14.0,"reach",120.0,9.5459,4.773,12.3888,78.14,21.7633],["AsymCL",14.0,"reach",135.0,9.7843,6.9185,9.9002,90.67,13.2053],["AsymCL",14.0,"reach",150.0,8.7058,7.5394,7.7902,116.03,4.9183],["AsymCL",14.0,"reach",165.0,7.4911,7.2358,7.0365,149.01,10.1208],["AsymCL",14.0,"reach",180.0,7.1042,7.1042,6.8958,180.0,10.6457],["BestPerf",16.0,"beat",37.7999,7.2995,5.7677,22.2227,26.19,23.0653],["BestPerf",16.0,"run",146.375,9.825,8.1811,9.5256,111.54,6.6648],["BestPerf",16.0,"reach",52.0,8.0464,4.9539,21.8922,35.16,23.7966],["BestPerf",16.0,"reach",60.0,8.2811,4.1405,21.3793,40.4,23.7111],["BestPerf",16.0,"reach",70.0,8.5889,2.9376,20.5857,46.92,29.058],["BestPerf",16.0,"reach",75.0,8.7759,2.2714,20.142,50.11,29.2197],["BestPerf",16.0,"reach",80.0,8.9688,1.5574,19.6539,53.29,29.4105],["BestPerf",16.0,"reach",90.0,9.3483,0.0,18.5308,59.7,29.1949],["BestPerf",16.0,"reach",110.0,9.487,3.2447,15.5619,75.05,21.7777],["BestPerf",16.0,"reach",120.0,10.0108,5.0054,14.0015,81.74,21.8226],["BestPerf",16.0,"reach",135.0,10.8093,7.6433,11.3249,92.55,21.3103],["BestPerf",16.0,"reach",150.0,9.3407,8.0893,9.1865,119.44,6.5011],["BestPerf",16.0,"reach",165.0,8.0374,7.7635,8.4951,150.83,6.065],["BestPerf",16.0,"reach",180.0,7.7718,7.7718,8.2282,180.0,10.3798],["Jib",16.0,"beat",37.7999,7.2995,5.7677,22.2227,26.19,23.0653],["Jib",16.0,"run",177.2,7.5812,7.5721,8.436,174.68,11.5344],["Jib",16.0,"reach",52.0,8.0464,4.9539,21.8922,35.16,23.7966],["Jib",16.0,"reach",60.0,8.2811,4.1405,21.3793,40.4,23.7111],["Jib",16.0,"reach",70.0,8.5889,2.9376,20.5857,46.92,29.058],["Jib",16.0,"reach",75.0,8.7759,2.2714,20.142,50.11,29.2197],["Jib",16.0,"reach",80.0,8.9688,1.5574,19.6539,53.29,29.4105],["Jib",16.0,"reach",90.0,9.3483,0.0,18.5308,59.7,29.1949],["Jib",16.0,"reach",110.0,9.2942,3.1788,15.5132,75.74,11.2599],["Jib",16.0,"reach",120.0,8.8781,4.4391,13.8842,86.37,4.2689],["Jib",16.0,"reach",135.0,8.2961,5.8662,11.7092,104.93,5.3506],["Jib",16.0,"reach",150.0,7.9598,6.8934,9.9383,126.39,5.9653],["Jib",16.0,"reach",165.0,7.7187,7.4557,8.7747,151.84,10.2842],["Jib",16.0,"reach",180.0,7.5686,7.5686,8.4314,180.0,11.091],["AsymCL",16.0,"beat",48.0,0.01,0.0067,16.0067,47.97,21.5],["AsymCL",16.0,"run",146.375,9.825,8.1811,9.5256,111.54,6.6648],["AsymCL",16.0,"reach",52.0,0.01,0.0062,16.0062,51.97,21.5],["AsymCL",16.0,"reach",60.0,6.8441,3.422,20.3063,43.03,21.751],["AsymCL",16.0,"reach",70.0,7.6852,2.6285,19.9793,48.81,21.8102],["AsymCL",16.0,"reach",75.0,7.9277,2.0518,19.6089,52.01,21.8667],["AsymCL",16.0,"reach",80.0,8.1327,1.4122,19.1659,55.3,21.8159],["AsymCL",16.0,"reach",90.0,8.5573,0.0,18.1446,61.86,21.7332],["AsymCL",16.0,"reach",110.0,9.487,3.2447,15.5619,75.05,21.7777],["AsymCL",16.0,"reach",120.0,10.0108,5.0054,14.0015,81.74,21.8226],["AsymCL",16.0,"reach",135.0,10.8093,7.6433,11.3249,92.55,21.3103],["AsymCL",16.0,"reach",150.0,9.3407,8.0893,9.1865,119.44,6.5011],["AsymCL",16.0,"reach",165.0,8.0374,7.7635,8.4951,150.83,6.065],["AsymCL",16.0,"reach",180.0,7.7718,7.7718,8.2282,180.0,10.3798],["BestPerf",20.0,"beat",38.1,7.3789,5.8067,26.2053,28.09,23.8738],["BestPerf",20.0,"run",143.225,12.7249,10.1926,12.4186,105.39,17.0614],["BestPerf",20.0,"reach",52.0,8.1446,5.0143,25.8245,37.61,25.5223],["BestPerf",20.0,"reach",60.0,8.4543,4.2271,25.3093,43.18,26.8945],["BestPerf",20.0,"reach",70.0,8.8723,3.0345,24.4969,50.1,27.4693],["BestPerf",20.0,"reach",75.0,9.0568,2.3441,23.9956,53.62,24.1946],["BestPerf",20.0,"reach",80.0,9.2008,1.5977,23.4214,57.24,24.6574],["BestPerf",20.0,"reach",90.0,9.6262,0.0,22.196,64.3,31.4104],["BestPerf",20.0,"reach",110.0,10.5237,3.5993,19.1514,78.91,24.9249],["BestPerf",20.0,"reach",120.0,10.9344,5.4672,17.3457,86.91,21.8779],["BestPerf",20.0,"reach",135.0,12.3453,8.7294,14.2558,97.24,21.9363],["BestPerf",20.0,"reach",150.0,10.9885,9.5163,11.8361,122.34,10.1673],["BestPerf",20.0,"reach",165.0,9.1069,8.7966,11.4487,153.12,7.2038],["BestPerf",20.0,"reach",180.0,8.7625,8.7625,11.2375,180.0,4.9563],["Jib",20.0,"beat",38.1,7.3789,5.8067,26.2053,28.09,23.8738],["Jib",20.0,"run",178.1,8.5178,8.5131,11.4904,176.69,5.7395],["Jib",20.0,"reach",52.0,8.1446,5.0143,25.8245,37.61,25.5223],["Jib",20.0,"reach",60.0,8.4543,4.2271,25.3093,43.18,26.8945],["Jib",20.0,"reach",70.0,8.8723,3.0345,24.4969,50.1,27.4693],["Jib",20.0,"reach",75.0,9.0568,2.3441,23.9956,53.62,24.1946],["Jib",20.0,"reach",80.0,9.2008,1.5977,23.4214,57.24,24.6574],["Jib",20.0,"reach",90.0,9.6262,0.0,22.196,64.3,31.4104],["Jib",20.0,"reach",110.0,10.5237,3.5993,19.1514,78.91,24.9249],["Jib",20.0,"reach",120.0,10.0932,5.0466,17.3208,89.69,12.6111],["Jib",20.0,"reach",135.0,9.3454,6.6082,14.9335,108.74,7.5944],["Jib",20.0,"reach",150.0,8.9323,7.7356,13.0523,129.99,6.7807],["Jib",20.0,"reach",165.0,8.6577,8.3627,11.8511,154.1,6.1508],["Jib",20.0,"reach",180.0,8.5103,8.5103,11.4897,180.0,5.0133],["AsymCL",20.0,"beat",48.0,0.01,0.0067,20.0067,47.98,21.5],["AsymCL",20.0,"run",143.225,12.7249,10.1926,12.4186,105.39,17.0614],["AsymCL",20.0,"reach",52.0,0.01,0.0062,20.0062,51.98,21.5],["AsymCL",20.0,"reach",60.0,6.9051,3.4525,24.2029,45.7,21.8567],["AsymCL",20.0,"reach",70.0,7.7945,2.6659,23.8199,52.09,22.1035],["AsymCL",20.0,"reach",75.0,8.0559,2.085,23.4158,55.59,21.9695],["AsymCL",20.0,"reach",80.0,8.3048,1.4421,22.9489,59.12,22.0129],["AsymCL",20.0,"reach",90.0,8.8783,0.0,21.8821,66.06,21.8917],["AsymCL",20.0,"reach",110.0,10.1425,3.4689,19.0817,80.03,21.8551],["AsymCL",20.0,"reach",120.0,10.9344,5.4672,17.3457,86.91,21.8779],["AsymCL",20.0,"reach",135.0,12.3453,8.7294,14.2558,97.24,21.9363],["AsymCL",20.0,"reach",150.0,10.9885,9.5163,11.8361,122.34,10.1673],["AsymCL",20.0,"reach",165.0,9.1069,8.7966,11.4487,153.12,7.2038],["AsymCL",20.0,"reach",180.0,8.7625,8.7625,11.2375,180.0,4.9563]];
+</script>
+<script>
+const LEVELS=[6,8,10,12,14,16,20];
+const rows=RAW.map(r=>({sail:r[0],tws:r[1],cond:r[2],twa:r[3],btv:r[4],vmg:r[5],aws:r[6],awa:r[7],heel:r[8]}));
+
+function curveRows(sail,tws){ // sorted usable rows at exact level
+  return rows.filter(r=>r.sail===sail&&r.tws===tws&&r.btv>1).sort((a,b)=>a.twa-b.twa);
+}
+function bracket(tws){
+  const t=Math.min(20,Math.max(6,tws));
+  let lo=LEVELS[0],hi=LEVELS[LEVELS.length-1];
+  for(let i=0;i<LEVELS.length-1;i++){if(t>=LEVELS[i]&&t<=LEVELS[i+1]){lo=LEVELS[i];hi=LEVELS[i+1];break;}}
+  const f=hi===lo?0:(t-lo)/(hi-lo);
+  return {lo,hi,f,t};
+}
+function interpTwaAt(list,twa){ // linear interp of fields along TWA within one level
+  if(!list.length)return null;
+  if(twa<=list[0].twa)return twa<list[0].twa-3?null:{...list[0]};
+  if(twa>=list[list.length-1].twa)return {...list[list.length-1]};
+  for(let i=0;i<list.length-1;i++){
+    const a=list[i],b=list[i+1];
+    if(twa>=a.twa&&twa<=b.twa){
+      const f=(twa-a.twa)/(b.twa-a.twa||1);
+      const mix=(k)=>a[k]+(b[k]-a[k])*f;
+      return {twa,btv:mix('btv'),aws:mix('aws'),awa:mix('awa'),heel:mix('heel')};
+    }
+  }
+  return null;
+}
+function pointAt(sail,twa,tws){ // full 2-D interpolation
+  const {lo,hi,f}=bracket(tws);
+  const a=interpTwaAt(curveRows(sail,lo),twa);
+  const b=interpTwaAt(curveRows(sail,hi),twa);
+  if(!a&&!b)return null;
+  if(!a)return b; if(!b)return a;
+  const mix=k=>a[k]+(b[k]-a[k])*f;
+  return {twa,btv:mix('btv'),aws:mix('aws'),awa:mix('awa'),heel:mix('heel')};
+}
+function target(cond,tws){ // beat or run BestPerf target across TWS
+  const {lo,hi,f}=bracket(tws);
+  const a=rows.find(r=>r.sail==='BestPerf'&&r.tws===lo&&r.cond===cond);
+  const b=rows.find(r=>r.sail==='BestPerf'&&r.tws===hi&&r.cond===cond);
+  const mix=k=>a[k]+(b[k]-a[k])*f;
+  return {twa:mix('twa'),btv:mix('btv'),vmg:mix('vmg'),aws:mix('aws'),awa:mix('awa'),heel:mix('heel')};
+}
+function sailRec(twa,tws){
+  const jib=pointAt('Jib',twa,tws);
+  const a2=pointAt('AsymCL',twa,tws);
+  const jOk=jib&&jib.btv>1, aOk=a2&&a2.btv>1;
+  if(aOk&&(!jOk||a2.btv>=jib.btv-0.02)) return {name:'A2 Asym',main:a2,other:jOk?jib:null,otherName:'Med Jib'};
+  return {name:'Med Jib',main:jib,other:aOk?a2:null,otherName:'A2 Asym'};
+}
+function fmt(n,d=1){return n==null?'—':n.toFixed(d);}
+
+/* state */
+let tws=10, mode='up', twa=90;
+
+const $=id=>document.getElementById(id);
+function setMode(m){mode=m;
+  $('tabUp').className=m==='up'?'on-up':'';
+  $('tabDn').className=m==='dn'?'on-dn':'';
+  $('tabCu').className=m==='cu'?'on-cu':'';
+  $('customBox').classList.toggle('show',m==='cu');
+  render();
+}
+$('tabUp').onclick=()=>setMode('up');
+$('tabDn').onclick=()=>setMode('dn');
+$('tabCu').onclick=()=>setMode('cu');
+var twsTouched=false;
+$('twsSlider').oninput=e=>{twsTouched=true;tws=+e.target.value;render();};
+$('twsUp').onclick=()=>{twsTouched=true;tws=Math.min(20,tws+0.5);$('twsSlider').value=tws;render();};
+$('twsDown').onclick=()=>{twsTouched=true;tws=Math.max(6,tws-0.5);$('twsSlider').value=tws;render();};
+$('twaSlider').oninput=e=>{twa=+e.target.value;render();};
+
+function render(){
+  $('twsNum').textContent=tws.toFixed(1);
+  $('twaNum').textContent=Math.round(twa);
+  const beat=target('beat',tws), run=target('run',tws);
+  let out, headTxt, headCls, sailName, sailAlt, gybeLbl, gybeVal;
+
+  if(mode==='up'){
+    out={...beat,vmg:beat.vmg}; headTxt='Upwind Target — Best VMG'; headCls='up';
+    sailName='Med Jib'; sailAlt='';
+    gybeVal=Math.round(beat.twa*2)+'°'; 
+  }else if(mode==='dn'){
+    out={...run,vmg:run.vmg}; headTxt='Downwind Target — Best VMG'; headCls='dn';
+    sailName='A2 Asym'; sailAlt='';
+    gybeVal=Math.round((180-run.twa)*2)+'°';
+  }else{
+    const p=pointAt('BestPerf',twa,tws)||{btv:null};
+    const vmg=p.btv!=null?Math.abs(p.btv*Math.cos(twa*Math.PI/180)):null;
+    out={twa,btv:p.btv,vmg,aws:p.aws,awa:p.awa,heel:p.heel};
+    headTxt='Target at '+Math.round(twa)+'° TWA'; headCls='cu';
+    const rec=sailRec(twa,tws);
+    sailName=rec.name;
+    sailAlt=rec.other?rec.otherName+' '+fmt(rec.other.btv)+' kts':'';
+    gybeVal=twa<90?Math.round(twa*2)+'°':Math.round((180-twa)*2)+'°';
+  }
+  $('rhead').textContent=headTxt; $('rhead').className='rhead '+headCls;
+  $('oTwa').textContent=fmt(out.twa,0)+'°';
+  $('oBsp').textContent=fmt(out.btv);
+  $('oVmg').textContent=fmt(out.vmg);
+  $('oAwa').textContent=fmt(out.awa,0)+'°';
+  $('oAws').textContent=fmt(out.aws)+' kt';
+  const heelEl=$('oHeel');
+  heelEl.textContent=fmt(out.heel,0)+'°';
+  heelEl.className='v'+(out.heel>22?' heelwarn':'');
+  $('oGybe').textContent=gybeVal;
+  $('oSail').textContent=sailName;
+  $('oSailAlt').textContent=sailAlt;
+
+  // crossover strip
+  const j135=pointAt('Jib',135,tws), a135=pointAt('AsymCL',135,tws);
+  let xo=null;
+  for(let t=60;t<=180;t+=2){
+    const j=pointAt('Jib',t,tws), a=pointAt('AsymCL',t,tws);
+    if(j&&a&&a.btv>1&&a.btv>=j.btv){xo=t;break;}
+  }
+  $('xover').innerHTML =
+    '<b>At '+tws.toFixed(1)+' kts:</b> beat <b>'+Math.round(beat.twa)+'° / '+fmt(beat.btv)+' kts</b>, '+
+    'run <b>'+Math.round(run.twa)+'° / '+fmt(run.btv)+' kts</b>. '+
+    (xo?'A2 becomes faster than the jib from about <b>'+xo+'° TWA</b> and deeper.':'The jib is faster than the A2 at every tabulated angle at this wind.');
+  drawPolar(beat,run);
+  if(typeof wpRender==='function')wpRender();
+  if(typeof trimReady!=='undefined'&&trimReady)renderTrim();
+}
+
+/* ---- polar SVG ---- */
+/* Half-rose: wind from top, TWA 0° points up, curve sweeps clockwise to 180° (down).
+   Center left of canvas so the starboard half fills the frame. */
+const svg=$('polar'), VW=340, VH=600, CX=32, CY=294, R=272;
+function drawPolar(beat,run){
+  const pts=[];
+  const start=Math.max(30,Math.round(beat.twa));
+  for(let t=start;t<=180;t+=2){const p=pointAt('BestPerf',t,tws);if(p&&p.btv>1)pts.push([t,p.btv]);}
+  if(!pts.length){svg.innerHTML='';return;}
+  const maxB=Math.max(8,Math.ceil(Math.max(...pts.map(p=>p[1]))+0.5));
+  const XY=(t,b)=>{const a=t*Math.PI/180,r=R*(b/maxB);
+    return [CX+r*Math.sin(a), CY-r*Math.cos(a)];};
+  let s='';
+  // speed rings (right half arcs) + labels
+  for(let b=2;b<=maxB;b+=2){
+    const r=R*b/maxB;
+    const [x0,y0]=XY(0,b),[x1,y1]=XY(180,b);
+    s+='<path d="M '+x0.toFixed(1)+' '+y0.toFixed(1)+' A '+r.toFixed(1)+' '+r.toFixed(1)+' 0 0 1 '+x1.toFixed(1)+' '+y1.toFixed(1)+'" fill="none" stroke="#1c2a38" stroke-width="1"/>';
+    s+='<text x="'+(CX+r*0.7071+4).toFixed(1)+'" y="'+(CY+r*0.7071+12).toFixed(1)+'" fill="#4a6072" font-size="11" font-family="JetBrains Mono,monospace">'+b+'</text>';
+  }
+  // TWA spokes every 30°
+  for(let t=0;t<=180;t+=30){
+    const [x,y]=XY(t,maxB);
+    s+='<line x1="'+CX+'" y1="'+CY+'" x2="'+x.toFixed(1)+'" y2="'+y.toFixed(1)+'" stroke="#16222e" stroke-width="1"/>';
+    const [lx,ly]=XY(t,maxB*1.05);
+    s+='<text x="'+Math.min(lx,VW-14).toFixed(1)+'" y="'+(ly+4).toFixed(1)+'" fill="#7c93a6" font-size="12" text-anchor="middle" font-family="Barlow Condensed,sans-serif">'+t+'°</text>';
+  }
+  // polar curve
+  let d='';
+  pts.forEach((p,i)=>{const [x,y]=XY(p[0],p[1]);d+=(i?'L ':'M ')+x.toFixed(1)+' '+y.toFixed(1)+' ';});
+  s+='<path d="'+d+'" fill="none" stroke="#e9f2f7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>';
+  // beat / run target dots
+  const bd=XY(beat.twa,beat.btv), rd=XY(run.twa,run.btv);
+  s+='<circle cx="'+bd[0].toFixed(1)+'" cy="'+bd[1].toFixed(1)+'" r="6.5" fill="#63b3ff" stroke="#0a1118" stroke-width="2"/>';
+  s+='<circle cx="'+rd[0].toFixed(1)+'" cy="'+rd[1].toFixed(1)+'" r="6.5" fill="#ff6b66" stroke="#0a1118" stroke-width="2"/>';
+  // custom TWA marker
+  if(mode==='cu'){
+    const p=pointAt('BestPerf',twa,tws);
+    if(p&&p.btv>1){const cd=XY(twa,p.btv);
+      s+='<line x1="'+CX+'" y1="'+CY+'" x2="'+cd[0].toFixed(1)+'" y2="'+cd[1].toFixed(1)+'" stroke="#ffbe5c" stroke-width="1.5" stroke-dasharray="4 4"/>';
+      s+='<circle cx="'+cd[0].toFixed(1)+'" cy="'+cd[1].toFixed(1)+'" r="8" fill="#ffbe5c" stroke="#0a1118" stroke-width="2"/>';
+    }
+  }
+  s+='<text x="'+CX+'" y="'+(CY-R-8)+'" fill="#4a6072" font-size="12" text-anchor="start" font-family="Barlow Condensed,sans-serif" letter-spacing="1">WIND ▲ 0°</text>';
+  svg.innerHTML=s;
+}
+/* tap/drag on polar sets TWA */
+function svgTwa(evt){
+  const r=svg.getBoundingClientRect();
+  const vx=(evt.clientX-r.left)/r.width*VW, vy=(evt.clientY-r.top)/r.height*VH;
+  const dx=vx-CX, dy=vy-CY;
+  let a=Math.atan2(dx,-dy)*180/Math.PI; // 0 up, +clockwise
+  return Math.max(35,Math.min(180,Math.abs(a)));
+}
+let dragging=false;
+svg.addEventListener('pointerdown',e=>{dragging=true;svg.setPointerCapture(e.pointerId);twa=Math.round(svgTwa(e));$('twaSlider').value=twa;if(mode!=='cu')setMode('cu');else render();});
+svg.addEventListener('pointermove',e=>{if(!dragging)return;twa=Math.round(svgTwa(e));$('twaSlider').value=twa;render();});
+svg.addEventListener('pointerup',()=>dragging=false);
+
+/* ---- waypoint & laylines ---- */
+let wpOpen=false, board='S', deadline=null, tickTimer=null;
+const wpBox=$('wpBox');
+$('wpToggle').onclick=()=>{wpOpen=!wpOpen;wpBox.classList.toggle('open',wpOpen);$('wpChev').textContent=wpOpen?'▾':'▸ optional';};
+$('tkS').onclick=()=>{board='S';wpRender();};
+$('tkP').onclick=()=>{board='P';wpRender();};
+['inTwd','inBtw','inDtw','inLat','inLon','inMlat','inMlon'].forEach(id=>$(id).addEventListener('input',()=>{if(id==='inMlat'||id==='inMlon')$('selMark').value='';if((id==='inLat'||id==='inLon')&&typeof renderSun==='function'){const a=parseFloat($('inLat').value),b=parseFloat($('inLon').value);if(!isNaN(a)&&!isNaN(b))renderSun(a,b);}wpRender();}));
+$('selMark').addEventListener('change',e=>{
+  if(e.target.value){const [la,lo]=e.target.value.split(',');$('inMlat').value=la;$('inMlon').value=lo;}
+  wpRender();
+});
+
+/* ---- GPS ---- */
+let watchId=null;
+$('btnGps').onclick=()=>{
+  const st=$('gpsStat');
+  if(watchId!=null){navigator.geolocation.clearWatch(watchId);watchId=null;$('btnGps').textContent='◉ Use my GPS';st.textContent='GPS off';st.className='gpsstat';return;}
+  if(!navigator.geolocation){st.textContent='Geolocation not available here — enter lat/lon manually, or open this file in Safari/Chrome.';st.className='gpsstat err';return;}
+  st.textContent='Acquiring…';st.className='gpsstat';
+  try{
+    watchId=navigator.geolocation.watchPosition(p=>{
+      $('inLat').value=p.coords.latitude.toFixed(5);
+      $('inLon').value=p.coords.longitude.toFixed(5);
+      if(typeof recordFix==='function')recordFix(p.coords.latitude,p.coords.longitude);
+      if(typeof onFix==='function')onFix(p);
+      st.textContent='GPS live · ±'+Math.round(p.coords.accuracy)+' m · '+new Date(p.timestamp).toLocaleTimeString();
+      st.className='gpsstat ok';
+      $('btnGps').textContent='◉ GPS on — tap to stop';
+      wpRender();
+    },err=>{
+      st.textContent='GPS blocked ('+err.message+'). If this preview can\'t access location, open the file in Safari/Chrome, or enter lat/lon manually.';
+      st.className='gpsstat err'; watchId=null; $('btnGps').textContent='◉ Use my GPS';
+    },{enableHighAccuracy:true,maximumAge:4000,timeout:15000});
+  }catch(e){st.textContent='GPS unavailable — enter lat/lon manually.';st.className='gpsstat err';}
+};
+
+/* ---- geodesy ---- */
+const NM_R=3440.065;
+function brgDist(la1,lo1,la2,lo2){
+  const r=Math.PI/180, f1=la1*r, f2=la2*r, dl=(lo2-lo1)*r;
+  const a=Math.sin((f2-f1)/2)**2+Math.cos(f1)*Math.cos(f2)*Math.sin(dl/2)**2;
+  const d=NM_R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+  const brg=(Math.atan2(Math.sin(dl)*Math.cos(f2),Math.cos(f1)*Math.sin(f2)-Math.sin(f1)*Math.cos(f2)*Math.cos(dl))/r+360)%360;
+  return {brg,dist:d};
+}
+function dest(la,lo,brg,nm){
+  const r=Math.PI/180;
+  return {lat:la+nm/60*Math.cos(brg*r), lon:lo+nm/60*Math.sin(brg*r)/Math.cos(la*r)};
+}
+
+function wpRender(){
+  $('tkS').className=board==='S'?'sel-s':'';
+  $('tkP').className=board==='P'?'sel-p':'';
+  /* if boat + mark positions present, drive bearing/distance from them */
+  const bla=parseFloat($('inLat').value), blo=parseFloat($('inLon').value);
+  let mla=parseFloat($('inMlat').value), mlo=parseFloat($('inMlon').value);
+  if(typeof course!=='undefined'&&course.length){mla=course[activeIdx].lat;mlo=course[activeIdx].lon;}
+  const havePos=!isNaN(bla)&&!isNaN(blo)&&!isNaN(mla)&&!isNaN(mlo);
+  if(havePos){
+    let bd=brgDist(bla,blo,mla,mlo);
+    if(typeof course!=='undefined'&&course.length&&bd.dist<0.3&&activeIdx<course.length-1){
+      activeIdx++;saveCourse();renderCourse();
+      mla=course[activeIdx].lat;mlo=course[activeIdx].lon;
+      bd=brgDist(bla,blo,mla,mlo);
+    }
+    $('inBtw').value=Math.round(bd.brg);
+    $('inDtw').value=bd.dist.toFixed(2);
+    $('autoNote').style.display='block';
+  }else $('autoNote').style.display='none';
+
+  const twd=parseFloat($('inTwd').value), btw=parseFloat($('inBtw').value), dtw=parseFloat($('inDtw').value);
+  const out=$('wpOut');
+  if(isNaN(twd)||isNaN(btw)||isNaN(dtw)||dtw<=0){out.style.display='none';stopTick();return;}
+  out.style.display='block';
+  const beat=target('beat',tws), run=target('run',tws);
+  const dAbs=Math.abs(sd(btw,twd)); // TWA to sail direct at the mark
+  const sit=$('wpSit'), cd=$('wpCd'), stats=$('wpStats');
+  let mapDrawn=false;
+
+  if(dAbs < beat.twa-0.5){
+    /* ---- beating: mark inside the upwind no-go cone ---- */
+    const theta=sd(btw,twd), L=legTimes(dtw,theta,beat.twa,beat.btv);
+    // axis+b course = port tack (wind over port bow); axis-b = starboard
+    const first = board==='P'?L.plus:L.minus, second = board==='P'?L.minus:L.plus;
+    const cS=Math.round((twd-beat.twa+360)%360), cP=Math.round((twd+beat.twa)%360);
+    sit.innerHTML='<b>Beat.</b> Mark is '+Math.round(dAbs)+'° off the wind — inside your '+Math.round(beat.twa)+'° beat angle, so a tack is required. Courses: stbd <b>'+String(cS).padStart(3,'0')+'°</b> / port <b>'+String(cP).padStart(3,'0')+'°</b>.';
+    startCountdown(first/beat.btv*3600,'to TACK<br>'+(board==='S'?'stbd → port':'port → stbd'));
+    stats.innerHTML=stat('Layline in',first.toFixed(2)+' nm')+stat('Final leg',second.toFixed(2)+' nm')+stat('ETA mark',fmtTime(L.tTotal));
+    if(havePos){const c1=board==='S'?cS:cP;drawMap({lat:bla,lon:blo},{lat:mla,lon:mlo},dest(bla,blo,c1,first),twd,{cS,cP,dtw,kind:'beat'});mapDrawn=true;}
+  } else if(dAbs > run.twa+0.5){
+    /* ---- running: mark inside the downwind dead zone ---- */
+    const g=180-run.twa, phi=sd(btw,(twd+180)%360), L=legTimes(dtw,phi,g,run.btv);
+    // downwind axis+g course => wind over starboard quarter = starboard gybe
+    const first = board==='S'?L.plus:L.minus, second = board==='S'?L.minus:L.plus;
+    const cS=Math.round((twd+180+g)%360), cP=Math.round((twd+180-g+360)%360);
+    sit.innerHTML='<b>Run.</b> Mark is '+Math.round(dAbs)+'° off the wind — deeper than your '+Math.round(run.twa)+'° run angle, so a gybe is required. Courses: stbd <b>'+String(cS).padStart(3,'0')+'°</b> / port <b>'+String(cP).padStart(3,'0')+'°</b>.';
+    startCountdown(first/run.btv*3600,'to GYBE<br>'+(board==='S'?'stbd → port':'port → stbd'));
+    stats.innerHTML=stat('Layline in',first.toFixed(2)+' nm')+stat('Final leg',second.toFixed(2)+' nm')+stat('ETA mark',fmtTime(L.tTotal));
+    if(havePos){const c1=board==='S'?cS:cP;drawMap({lat:bla,lon:blo},{lat:mla,lon:mlo},dest(bla,blo,c1,first),twd,{cS,cP,dtw,kind:'run'});mapDrawn=true;}
+  } else {
+    /* ---- fetch / reach: sail straight at it ---- */
+    const p=pointAt('BestPerf',dAbs,tws);
+    stopTick(); cd.style.display='none';
+    if(p&&p.btv>1){
+      const rec=sailRec(dAbs,tws);
+      sit.innerHTML='<b>Fetch.</b> No tack or gybe needed — steer <b>'+String(Math.round(btw)).padStart(3,'0')+'°</b> ('+Math.round(dAbs)+'° TWA) under the <b>'+rec.name+'</b>.';
+      stats.innerHTML=stat('Target BSP',p.btv.toFixed(1)+' kt')+stat('Distance',dtw.toFixed(2)+' nm')+stat('ETA mark',fmtTime(dtw/p.btv*3600));
+    } else {
+      sit.innerHTML='<b>Fetch.</b> Steer '+String(Math.round(btw)).padStart(3,'0')+'° — no polar data at this exact angle.';
+      stats.innerHTML='';
+    }
+    if(havePos){drawMap({lat:bla,lon:blo},{lat:mla,lon:mlo},null,twd,null);mapDrawn=true;}
+  }
+  $('mapWrap').style.display=mapDrawn?'block':'none';
+}
+
+/* ---- chart via Leaflet: OSM base + OpenSeaMap nav marks, NOAA ENC optional ---- */
+let map=null, lyr=null, routeLyr=null, wxLyr=null, lastFit='';
+function ensureMap(){
+  if(map||typeof L==='undefined')return;
+  map=L.map('lakeMap',{zoomControl:true});
+  const osm=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:17,attribution:'© OpenStreetMap'});
+  const enc=L.tileLayer('https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer/tile/{z}/{y}/{x}',{maxZoom:16,attribution:'NOAA ENC'});
+  const marks=L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',{maxZoom:17,attribution:'© OpenSeaMap'});
+  osm.addTo(map); marks.addTo(map);
+  L.control.layers({'Map':osm,'NOAA ENC':enc},{'Nav marks':marks},{position:'topleft'}).addTo(map);
+  lyr=L.layerGroup().addTo(map);
+  wxLyr=L.layerGroup().addTo(map);
+  routeLyr=L.layerGroup().addTo(map);
+  if(typeof LAND!=='undefined'){
+    const nogo=L.layerGroup().addTo(map);
+    LAND.shoals.forEach(p=>L.polygon(p,{color:'#ff8c42',weight:1.5,fillColor:'#ff8c42',fillOpacity:.18,dashArray:'4 4'}).addTo(nogo).bindTooltip('No-go: shoal (approx)'));
+    LAND.islands.forEach(p=>L.polygon(p,{color:'#ff8c42',weight:1,fillOpacity:0,dashArray:'4 4'}).addTo(nogo));
+    CORRIDORS.forEach(c=>L.polyline(c,{color:'#3ecf74',weight:1.5,dashArray:'2 8',opacity:.6}).addTo(nogo).bindTooltip('Charted channel corridor'));
+  }
+}
+/* persistent draggable start pin (own layer — survives layline redraws) */
+let startPin=null;
+function moveStartTo(lat,lng){
+  $('inLat').value=lat.toFixed(5); $('inLon').value=lng.toFixed(5);
+  wpRender();
+  if(wx&&typeof runRoute==='function')runRoute(false);   // re-optimize on loaded forecast
+}
+function updateStartPin(B){
+  if(!map)return;
+  if(!startPin){
+    const big=L.divIcon({className:'',iconSize:[44,44],iconAnchor:[22,22],
+      html:'<div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center"><div class="boatpin"></div></div>'});
+    startPin=L.marker(B,{icon:big,draggable:true,zIndexOffset:1500,autoPan:true}).addTo(map)
+      .bindTooltip('Black Diamond — drag to move start');
+    startPin.on('dragend',e=>{const ll=e.target.getLatLng();moveStartTo(ll.lat,ll.lng);});
+  }else startPin.setLatLng(B);
+}
+/* tap-to-place fallback: arm, then tap the chart */
+let placing=false;
+function armPlace(){
+  if(!map)return;
+  placing=!placing;
+  $('moveBtn').classList.toggle('armed',placing);
+  $('moveBtn').textContent=placing?'Tap chart…':'📍 Move start';
+  if(placing)map.once('click',e=>{
+    placing=false;$('moveBtn').classList.remove('armed');$('moveBtn').textContent='📍 Move start';
+    moveStartTo(e.latlng.lat,e.latlng.lng);
+  });
+}
+
+/* fullscreen (CSS-based — works on iPhone where the Fullscreen API doesn't) */
+let fsOn=false;
+function toggleFS(){
+  fsOn=!fsOn;
+  document.querySelector('.maprel').classList.toggle('fs',fsOn);
+  $('fsBtn').textContent=fsOn?'✕ Exit':'⛶ Full';
+  document.body.style.overflow=fsOn?'hidden':'';
+  if(map)setTimeout(()=>map.invalidateSize(),60);
+}
+function pin(cls){return L.divIcon({className:'',html:'<div class="'+cls+'"></div>',iconSize:[16,16],iconAnchor:[8,8]});}
+function drawMap(boat,mark,tackPt,twd,opts){
+  const wrap=$('mapWrap');
+  if(typeof L==='undefined'){wrap.style.display='block';$('lakeMap').innerHTML='<div style="padding:20px;color:#7c93a6;font-size:14px;text-align:center">Chart unavailable — no internet connection for NOAA tiles.</div>';return;}
+  wrap.style.display='block';
+  ensureMap(); if(!map)return;
+  map.invalidateSize();
+  if(typeof drawTrack==='function')drawTrack();
+  lyr.clearLayers();
+  const B=[boat.lat,boat.lon], M=[mark.lat,mark.lon];
+  // direct rhumb (reference)
+  L.polyline([B,M],{color:'#7c93a6',weight:1.5,dashArray:'3 7',opacity:.8}).addTo(lyr);
+  // laylines through the mark (stbd green / port red, nav colors)
+  if(opts){
+    const len=Math.max(opts.dtw*1.35,2);
+    const eS=dest(mark.lat,mark.lon,(opts.cS+180)%360,len);
+    const eP=dest(mark.lat,mark.lon,(opts.cP+180)%360,len);
+    L.polyline([M,[eS.lat,eS.lon]],{color:'#2fbf5f',weight:2.5,opacity:.95}).addTo(lyr)
+      .bindTooltip('Stbd layline — final approach '+String(opts.cS).padStart(3,'0')+'°');
+    L.polyline([M,[eP.lat,eP.lon]],{color:'#ff5a5f',weight:2.5,opacity:.95}).addTo(lyr)
+      .bindTooltip('Port layline — final approach '+String(opts.cP).padStart(3,'0')+'°');
+  }
+  // sailing route: current leg solid, next leg (after tack/gybe) dashed
+  if(tackPt){
+    const T=[tackPt.lat,tackPt.lon];
+    L.polyline([B,T],{color:'#ffbe5c',weight:4}).addTo(lyr).bindTooltip('Current leg');
+    L.polyline([T,M],{color:'#ffbe5c',weight:3,dashArray:'8 8'}).addTo(lyr).bindTooltip('After '+(opts&&opts.kind==='run'?'gybe':'tack'));
+    L.marker(T,{icon:pin('tackpin')}).addTo(lyr).bindTooltip((opts&&opts.kind==='run'?'Gybe':'Tack')+' point');
+  }else{
+    L.polyline([B,M],{color:'#ffbe5c',weight:4}).addTo(lyr).bindTooltip('Fetch — sail direct');
+  }
+  updateStartPin(B);
+  L.marker(M,{icon:pin('markpin')}).addTo(lyr).bindTooltip((typeof course!=='undefined'&&course.length)?course[activeIdx].name:'Mark');
+  if(typeof course!=='undefined'&&course.length>1){
+    L.polyline(course.map(c=>[c.lat,c.lon]),{color:'#7c93a6',weight:1,dashArray:'2 8',opacity:.7}).addTo(lyr);
+    course.forEach((c,i)=>{if(i!==activeIdx)L.marker([c.lat,c.lon],{icon:pin('tackpin'),opacity:.8}).addTo(lyr).bindTooltip((i+1)+'. '+c.name);});
+  }
+  // wind badge
+  $('windArr').style.transform='rotate('+Math.round(twd)+'deg)';
+  $('windTxt').textContent='TWD '+String(Math.round(twd)).padStart(3,'0')+'° · '+tws.toFixed(1)+' kt';
+  // fit once per boat/mark pairing (don't yank the view on every GPS tick)
+  const key=M.map(v=>v.toFixed(3)).join(',');
+  if(key!==lastFit){
+    const b=L.latLngBounds([B,M]); if(tackPt)b.extend([tackPt.lat,tackPt.lon]);
+    map.fitBounds(b.pad(0.25));
+    lastFit=key;
+  }
+}
+
+function sd(a,b){let d=(a-b)%360;if(d>180)d-=360;if(d<-180)d+=360;return d;} // signed diff -180..180
+function fmtTime(s){
+  s=Math.max(0,Math.round(s));
+  const h=Math.floor(s/3600),m=Math.floor(s%3600/60),ss=s%60;
+  return (h?h+':':'')+String(m).padStart(h?2:1,'0')+':'+String(ss).padStart(2,'0');
+}
+function legTimes(D,theta,b,V){
+  // mark at signed angle theta from axis; courses at axis±b; V = target bsp
+  const rb=b*Math.PI/180, rt=theta*Math.PI/180;
+  const plus =D/2*(Math.cos(rt)/Math.cos(rb)+Math.sin(rt)/Math.sin(rb)); // leg on axis+b course
+  const minus=D/2*(Math.cos(rt)/Math.cos(rb)-Math.sin(rt)/Math.sin(rb)); // leg on axis-b course
+  return {plus,minus,total:plus+minus,tTotal:(plus+minus)/V*3600};
+}
+function stat(k,v){return '<div class="cell"><div class="k">'+k+'</div><div class="v">'+v+'</div></div>';}
+
+function startCountdown(sec,label){
+  $('wpCd').style.display='flex';
+  $('cdWhat').innerHTML=label;
+  deadline=Date.now()+sec*1000;
+  tick(); stopTick(); tickTimer=setInterval(tick,1000);
+}
+function stopTick(){if(tickTimer){clearInterval(tickTimer);tickTimer=null;}}
+function tick(){
+  if(deadline==null)return;
+  const rem=(deadline-Date.now())/1000, el=$('cdT');
+  if(rem<=0){el.textContent=$('cdWhat').textContent.includes('GYBE')?'GYBE NOW':'TACK NOW';el.className='t now';}
+  else{el.textContent=fmtTime(rem);el.className='t';}
+}
+
+
+setMode('up');
+
+/* ================= WEATHER ROUTING (GFS via Open-Meteo) ================= */
+$('fsBtn').onclick=toggleFS;
+$('moveBtn').onclick=armPlace;
+
+/* memoize polar rows for router performance */
+const _crCache={};
+const _cr0=curveRows;
+curveRows=function(sail,t){const k=sail+t;return _crCache[k]||(_crCache[k]=_cr0(sail,t));};
+
+/* Code 0 (onboard, not in ORC cert): estimated reaching gain over the jib.
+   Band 55-115 deg TWA, strongest ~85 deg in light air, gone by ~15 kts TWS. */
+function code0Speed(twa,twsV){
+  if(twa<55||twa>115)return null;
+  const jib=pointAt('Jib',twa,twsV);
+  if(!jib||jib.btv<1)return null;
+  const band=Math.sin(Math.PI*(twa-55)/60);
+  const light=Math.max(0,Math.min(1,(15-twsV)/9));
+  const g=0.11*Math.max(0,band)*light;
+  return g>0.005?jib.btv*(1+g):null;
+}
+function bestSail(twa,twsV){
+  const bp=pointAt('BestPerf',twa,twsV);
+  let bsp=bp&&bp.btv>1?bp.btv:0, sail=null;
+  if(bsp>0){
+    const jib=pointAt('Jib',twa,twsV), a2=pointAt('AsymCL',twa,twsV);
+    sail=(a2&&a2.btv>1&&(!jib||a2.btv>=jib.btv))?'A2':'Jib';
+  }
+  const c0=code0Speed(twa,twsV);
+  if(c0&&c0>bsp){bsp=c0;sail='Code 0';}
+  return bsp>0?{bsp,sail}:null;
+}
+
+/* ---- GFS wind field ---- */
+let wx=null;
+async function fetchWx(bla,blo,mla,mlo){
+  const la0=Math.min(bla,mla)-0.4, la1=Math.max(bla,mla)+0.4;
+  const lo0=Math.min(blo,mlo)-0.5, lo1=Math.max(blo,mlo)+0.5;
+  const NLA=7,NLO=5, lats=[],lons=[],qa=[],qo=[];
+  for(let i=0;i<NLA;i++)lats.push(la0+(la1-la0)*i/(NLA-1));
+  for(let j=0;j<NLO;j++)lons.push(lo0+(lo1-lo0)*j/(NLO-1));
+  for(const la of lats)for(const lo of lons){qa.push(la.toFixed(3));qo.push(lo.toFixed(3));}
+  const url='https://api.open-meteo.com/v1/forecast?latitude='+qa.join(',')+'&longitude='+qo.join(',')
+    +'&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=kn&timeformat=unixtime&forecast_days=3&models=gfs_seamless';
+  const res=await fetch(url);
+  if(!res.ok)throw new Error('Open-Meteo '+res.status);
+  let js=await res.json(); if(!Array.isArray(js))js=[js];
+  const times=js[0].hourly.time, r=Math.PI/180;
+  const u=[],v=[];
+  js.forEach(pt=>{
+    const s=pt.hourly.wind_speed_10m, d=pt.hourly.wind_direction_10m;
+    u.push(s.map((sp,i)=>-sp*Math.sin(d[i]*r)));
+    v.push(s.map((sp,i)=>-sp*Math.cos(d[i]*r)));
+  });
+  wx={lats,lons,NLA,NLO,times,u,v,t0:Date.now()/1000};
+}
+function windAt(la,lo,hAfter){
+  if(!wx)return null;
+  const tt=wx.t0+hAfter*3600;
+  let ti=(tt-wx.times[0])/3600;
+  ti=Math.max(0,Math.min(wx.times.length-1.001,ti));
+  const t0=Math.floor(ti), tf=ti-t0;
+  const fi=Math.max(0,Math.min(wx.NLA-1.001,(la-wx.lats[0])/(wx.lats[wx.NLA-1]-wx.lats[0])*(wx.NLA-1)));
+  const fj=Math.max(0,Math.min(wx.NLO-1.001,(lo-wx.lons[0])/(wx.lons[wx.NLO-1]-wx.lons[0])*(wx.NLO-1)));
+  const i0=Math.floor(fi), j0=Math.floor(fj), a=fi-i0, b=fj-j0;
+  const idx=(i,j)=>i*wx.NLO+j;
+  const g=(arr,h)=>{
+    const w00=arr[idx(i0,j0)][h],w01=arr[idx(i0,j0+1)][h],w10=arr[idx(i0+1,j0)][h],w11=arr[idx(i0+1,j0+1)][h];
+    return w00*(1-a)*(1-b)+w01*(1-a)*b+w10*a*(1-b)+w11*a*b;
+  };
+  const uu=g(wx.u,t0)*(1-tf)+g(wx.u,t0+1)*tf, vv=g(wx.v,t0)*(1-tf)+g(wx.v,t0+1)*tf;
+  const spd=Math.hypot(uu,vv), dir=(Math.atan2(-uu,-vv)*180/Math.PI+360)%360;
+  return {spd,dir};
+}
+
+/* ---- isochrone router ---- */
+let route=null;
+function optimize(bla,blo,mla,mlo,h0){
+  h0=h0||0;
+  const DT=1, MAXH=66, offs=[-80,-65,-52,-40,-30,-22,-15,-9,-4,0,4,9,15,22,30,40,52,65,80];
+  buildMask(Math.min(bla,mla),Math.max(bla,mla),Math.min(blo,mlo),Math.max(blo,mlo));
+  let nodes=[{lat:bla,lon:blo,h:h0,parent:null}], best=null;
+  const axis=brgDist(bla,blo,mla,mlo).brg;
+  for(let step=0;step<MAXH;step++){
+    const next=[];
+    for(const n of nodes){
+      const w=windAt(n.lat,n.lon,n.h); if(!w||w.spd<0.5)continue;
+      const bm=brgDist(n.lat,n.lon,mla,mlo);
+      const twaF=Math.abs(sd(w.dir,bm.brg)), sF=bestSail(twaF,w.spd);
+      if(sF&&bm.dist<=sF.bsp*DT*1.05&&!segBlocked(n.lat,n.lon,mla,mlo,bla,blo)){
+        const tf=n.h+bm.dist/sF.bsp;
+        if(!best||tf<best.h)best={lat:mla,lon:mlo,h:tf,parent:n,hdg:Math.round(bm.brg),sail:sF.sail,bsp:sF.bsp,tws:w.spd,twd:w.dir,twa:twaF};
+        continue;
+      }
+      if(best&&n.h>=best.h)continue;
+      for(const o of offs){
+        const hdg=(bm.brg+o+360)%360, twa=Math.abs(sd(w.dir,hdg));
+        const beatA=target('beat',Math.max(6,Math.min(20,w.spd))).twa;
+        if(twa<beatA-1)continue;
+        const ss=bestSail(twa,w.spd); if(!ss)continue;
+        const p=dest(n.lat,n.lon,hdg,ss.bsp*DT);
+        if(blockedAt(p.lat,p.lon))continue;
+        if(segBlocked(n.lat,n.lon,p.lat,p.lon,bla,blo))continue;
+        next.push({lat:p.lat,lon:p.lon,h:n.h+DT,parent:n,hdg,sail:ss.sail,bsp:ss.bsp,tws:w.spd,twd:w.dir,twa});
+      }
+    }
+    if(!next.length)break;
+    next.forEach(n=>{
+      const bd=brgDist(bla,blo,n.lat,n.lon);
+      n.xt=bd.dist*Math.sin(sd(bd.brg,axis)*Math.PI/180);
+      n.dtm=brgDist(n.lat,n.lon,mla,mlo).dist;
+    });
+    const buckets={};
+    next.forEach(n=>{const k=Math.round(n.xt/2.5);if(!buckets[k]||n.dtm<buckets[k].dtm)buckets[k]=n;});
+    nodes=Object.values(buckets).sort((a,b)=>a.dtm-b.dtm).slice(0,55);
+  }
+  if(!best)return null;
+  const path=[]; for(let n=best;n;n=n.parent)path.unshift(n);
+  const w0=windAt(bla,blo,h0)||{spd:0,dir:0};
+  path[0]={...path[0],hdg:path[1]?path[1].hdg:0,sail:path[1]?path[1].sail:'',bsp:path[1]?path[1].bsp:0,tws:w0.spd,twd:w0.dir,twa:path[1]?path[1].twa:0};
+  return path;
+}
+
+/* ---- route UI ---- */
+const SAILCOL={'Jib':'#63b3ff','Code 0':'#ffe066','A2':'#ff6b66'};
+async function runRoute(refetch){
+  const bla=parseFloat($('inLat').value), blo=parseFloat($('inLon').value);
+  let mla=parseFloat($('inMlat').value), mlo=parseFloat($('inMlon').value);
+  /* a loaded course selects the destination automatically (final mark for bounds) */
+  if(typeof course!=='undefined'&&course.length){
+    const last=course[course.length-1]; mla=last.lat; mlo=last.lon;
+  }
+  const st=$('routeStat');
+  if(isNaN(bla)||isNaN(blo)){st.textContent='Need a boat position — turn on GPS or drag the amber boat pin on the map.';return;}
+  if(isNaN(mla)||isNaN(mlo)){st.textContent='Set a mark or load the Mac course first.';return;}
+  if(typeof L==='undefined'||!map){st.textContent='Map not loaded yet.';return;}
+  const mdl=$('selModel').value;
+  const MNAME={best_match:'Best match',gfs_seamless:'GFS',ecmwf_ifs025:'ECMWF',gfs_hrrr:'HRRR'};
+  if(refetch||!wx||wx.model!==mdl){
+    st.textContent='Fetching '+MNAME[mdl]+'…';
+    try{wx=await fetchWxM(mdl,bla,blo,mla,mlo);}
+    catch(e){st.textContent=MNAME[mdl]+' fetch failed ('+e.message+'). Needs internet; use the hosted page, not the chat preview.';return;}
+  }
+  st.textContent='Optimizing…';
+  await new Promise(r=>setTimeout(r,30));
+  /* optional planned start time (pre-race planning); default = now */
+  let hStart=0;
+  const sv=$('inStart').value;
+  if(sv){
+    hStart=(new Date(sv).getTime()/1000-wx.t0)/3600;
+    if(hStart<0){st.textContent='Start time is in the past — using now instead.';hStart=0;}
+    else{
+      const hzn=(wx.times[wx.times.length-1]-wx.t0)/3600;
+      if(hStart>hzn-6){st.textContent='Start time is beyond this model\'s horizon (~'+Math.round(hzn)+'h) — pick something sooner or switch models.';return;}
+    }
+  }
+  const legs=(typeof course!=='undefined'&&course.length)?course.slice(activeIdx):[{lat:mla,lon:mlo,name:'Mark'}];
+  route=[]; let px=bla, py=blo, h0=hStart, ok=true;
+  for(const wp of legs){
+    const seg=optimize(px,py,wp.lat,wp.lon,h0);
+    if(!seg||seg.length<2){ok=false;break;}
+    route=route.concat(route.length?seg.slice(1):seg);
+    px=wp.lat; py=wp.lon; h0=seg[seg.length-1].h;
+  }
+  if(!ok||route.length<2){st.textContent='No route found inside the 72-hr forecast window'+(legs.length>1?' (multi-leg course may exceed it)':'')+'.';return;}
+  /* three-way model comparison along the routed track (best-effort) */
+  const others=['gfs_hrrr','gfs_seamless','ecmwf_ifs025'].filter(m=>m!==mdl);
+  Promise.allSettled(others.map(m=>fetchWxM(m,bla,blo,legs[legs.length-1].lat,legs[legs.length-1].lon))).then(res=>{
+    let lines=[], worst=0;
+    res.forEach((r,i)=>{
+      if(r.status!=='fulfilled')return;
+      const W=r.value, hzn=(W.times[W.times.length-1]-W.t0)/3600;
+      let ds=0,dd=0,n=0,mx=0,mxh=0;
+      route.forEach(p=>{
+        if(p.h>hzn-0.5)return;
+        const g=windAtW(wx,p.lat,p.lon,p.h),e=windAtW(W,p.lat,p.lon,p.h);
+        if(!g||!e)return;
+        const a=Math.abs(g.spd-e.spd),b=Math.abs(sd(g.dir,e.dir));
+        ds+=a;dd+=b;n++;if(a>mx){mx=a;mxh=p.h;}});
+      if(!n)return;
+      worst=Math.max(worst,ds/n);
+      lines.push('<b>'+MNAME[others[i]]+':</b> ±'+(ds/n).toFixed(1)+' kt / ±'+Math.round(dd/n)+'°'
+        +(hzn<route[route.length-1].h?' (first '+Math.round(hzn)+'h)':'')
+        +', max '+mx.toFixed(1)+' kt @ T+'+Math.round(mxh)+'h');
+    });
+    if(lines.length)$('routeSum').innerHTML+='<span class="c0note"><b>Model agreement vs '+MNAME[mdl]+':</b><br>'
+      +lines.join('<br>')+'<br>'
+      +(worst<1.5?'Models converge — commit to the plan.':'Models diverge — treat this route as one scenario and keep options open.')+'</span>';
+  });
+  st.textContent=MNAME[mdl]+' · fetched '+new Date(wx.t0*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+' · ETA '+fmtTime((route[route.length-1].h-route[0].h)*3600);
+  drawRoute(); buildSummary();
+  $('tBar').style.display='block';
+  $('tSlider').min=Math.floor(route[0].h*2)/2;
+  $('tSlider').max=Math.ceil(route[route.length-1].h*2)/2;
+  $('tSlider').value=route[0].h; renderT(route[0].h);
+}
+$('btnRoute').onclick=()=>runRoute(true);
+$('tSlider').addEventListener('input',e=>renderT(parseFloat(e.target.value)));
+
+function drawRoute(){
+  routeLyr.clearLayers();
+  for(let i=1;i<route.length;i++){
+    L.polyline([[route[i-1].lat,route[i-1].lon],[route[i].lat,route[i].lon]],
+      {color:SAILCOL[route[i].sail]||'#e9f2f7',weight:4,opacity:.95}).addTo(routeLyr)
+      .bindTooltip('T+'+route[i-1].h.toFixed(0)+'h · '+route[i].sail+' · '+route[i].bsp.toFixed(1)+' kt');
+  }
+  const b=L.latLngBounds(route.map(p=>[p.lat,p.lon])); map.fitBounds(b.pad(0.18));
+}
+function posAt(h){
+  if(h<=route[0].h)return route[0];
+  for(let i=1;i<route.length;i++){
+    if(h<=route[i].h){
+      const a=route[i-1],b=route[i],f=(h-a.h)/(b.h-a.h||1);
+      return {lat:a.lat+(b.lat-a.lat)*f,lon:a.lon+(b.lon-a.lon)*f,seg:b};
+    }
+  }
+  return route[route.length-1];
+}
+let ghost=null, rafPend=false, pendH=0;
+function renderT(h){
+  pendH=h;
+  if(rafPend)return; rafPend=true;
+  requestAnimationFrame(()=>{rafPend=false;_renderT(pendH);});
+}
+function _renderT(h){
+  const when=new Date((wx.t0+h*3600)*1000);
+  $('tLabel').textContent='T+'+h.toFixed(1)+'h — '+when.toLocaleString([],{weekday:'short',hour:'2-digit',minute:'2-digit'});
+  const p=posAt(h), seg=p.seg||p;
+  const w=windAt(p.lat,p.lon,h)||{spd:0,dir:0};
+  $('tChips').innerHTML='<span>TWS <b>'+w.spd.toFixed(1)+'</b></span><span>TWD <b>'+String(Math.round(w.dir)).padStart(3,'0')+'°</b></span>'
+    +'<span>BSP <b>'+(seg.bsp||0).toFixed(1)+'</b></span><span>TWA <b>'+Math.round(seg.twa||0)+'°</b></span>'
+    +'<span>HDG <b>'+String(Math.round(seg.hdg||0)).padStart(3,'0')+'°</b></span><span>SAIL <b>'+(seg.sail||'—')+'</b></span>';
+  if(ghost)routeLyr.removeLayer(ghost);
+  ghost=L.marker([p.lat,p.lon],{icon:pin('boatpin'),zIndexOffset:1000}).addTo(routeLyr)
+    .bindTooltip('Black Diamond @ T+'+h.toFixed(1)+'h');
+  wxLyr.clearLayers();
+  for(let i=0;i<wx.NLA;i++)for(let j=0;j<wx.NLO;j++){
+    const la=wx.lats[i], lo=wx.lons[j], w2=windAt(la,lo,h); if(!w2)continue;
+    const c=w2.spd<8?'#8fb8d8':w2.spd<14?'#e9f2f7':w2.spd<20?'#ffbe5c':'#ff6b66';
+    const ic=L.divIcon({className:'',iconSize:[26,26],iconAnchor:[13,13],
+      html:'<div style="transform:rotate('+Math.round(w2.dir)+'deg);color:'+c+';font-size:17px;line-height:26px;text-align:center;text-shadow:0 0 3px #0a1118">↓</div>'});
+    L.marker([la,lo],{icon:ic,interactive:false}).addTo(wxLyr);
+  }
+}
+function buildSummary(){
+  const segs=[]; let cur=null;
+  route.slice(1).forEach(p=>{
+    if(!cur||cur.sail!==p.sail){cur={sail:p.sail,h0:p.h-1,h1:p.h};segs.push(cur);}
+    else cur.h1=p.h;
+  });
+  const plan=segs.map(s=>'<b style="color:'+(SAILCOL[s.sail]||'#fff')+'">'+s.sail+'</b> T+'+Math.max(0,s.h0).toFixed(0)+'-'+s.h1.toFixed(1)+'h').join(' → ');
+  const end=route[route.length-1];
+  let dist=0; for(let i=1;i<route.length;i++)dist+=brgDist(route[i-1].lat,route[i-1].lon,route[i].lat,route[i].lon).dist;
+  $('routeSum').style.display='block';
+  $('routeSum').innerHTML='<b>Optimized route:</b> '+dist.toFixed(0)+' nm sailed, ETA <b>'
+    +new Date((wx.t0+end.h*3600)*1000).toLocaleString([],{weekday:'short',hour:'2-digit',minute:'2-digit'})
+    +'</b> (T+'+end.h.toFixed(1)+'h). Sail plan: '+plan+'.'
+    +'<span class="c0note">Code 0 speeds are estimated (up to ~+11% over jib, 55–115° TWA, fading above ~15 kts TWS) — the ORC cert doesn\'t include it. GFS 10 m winds; expect a bit more at masthead. Router ignores land and current.</span>';
+}
+
+
+/* ================= HISTORICAL TRACK ================= */
+let trackLyr=null, trackLine=null, track=[];
+function storeGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+function storeSet(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+try{const s=storeGet('bdTrack');if(s)track=JSON.parse(s)||[];}catch(e){track=[];}
+function trackNm(){let d=0;for(let i=1;i<track.length;i++)d+=brgDist(track[i-1][0],track[i-1][1],track[i][0],track[i][1]).dist;return d;}
+function recordFix(la,lo){
+  const t=Date.now();
+  if(track.length){
+    const last=track[track.length-1];
+    const moved=brgDist(last[0],last[1],la,lo).dist;
+    if(moved<0.01 && t-last[2]<60000)return;   // <18 m and <60 s: skip
+  }
+  track.push([+la.toFixed(5),+lo.toFixed(5),t]);
+  if(track.length>4000)track=track.filter((_,i)=>i%2===0||i>track.length-500); // thin old points
+  storeSet('bdTrack',JSON.stringify(track));
+  drawTrack();
+}
+function drawTrack(){
+  if(!map)return;
+  if(!trackLyr){trackLyr=L.layerGroup().addTo(map);}
+  const pts=track.map(p=>[p[0],p[1]]);
+  if(!trackLine){
+    trackLine=L.polyline(pts,{color:'#4dd0c4',weight:2.5,opacity:.85}).addTo(trackLyr)
+      .bindTooltip(()=>'Track — '+trackNm().toFixed(1)+' nm');
+  }else trackLine.setLatLngs(pts);
+}
+$('btnTrk').onclick=()=>{
+  if(!track.length){$('gpsStat').textContent='No track recorded yet.';$('gpsStat').className='gpsstat';return;}
+  if(confirm('Clear recorded track ('+trackNm().toFixed(1)+' nm, '+track.length+' fixes)?')){
+    track=[];storeSet('bdTrack','[]');
+    if(trackLine)trackLine.setLatLngs([]);
+    $('gpsStat').textContent='Track cleared.';$('gpsStat').className='gpsstat';
+  }
+};
+
+/* ================= TRIM GUIDE (dynamic) ================= */
+let trimOpen=true;
+$('trimToggle').onclick=()=>{trimOpen=!trimOpen;$('trimBox').classList.toggle('open',trimOpen);$('trimChev').textContent=trimOpen?'▾':'▸';};
+$('trimBox').classList.add('open');$('trimChev').textContent='▾';
+
+const DEPOWER={6:[1,1],8:[1,.99],10:[1,.88],12:[1,.73],14:[.84,.62],16:[.50,.62],20:[.43,.62]}; // tws:[reef,flat] from cert
+function depowerAt(t){
+  const ks=[6,8,10,12,14,16,20];const tt=Math.max(6,Math.min(20,t));
+  for(let i=0;i<ks.length-1;i++){if(tt>=ks[i]&&tt<=ks[i+1]){const f=(tt-ks[i])/(ks[i+1]-ks[i]);
+    return [DEPOWER[ks[i]][0]+(DEPOWER[ks[i+1]][0]-DEPOWER[ks[i]][0])*f, DEPOWER[ks[i]][1]+(DEPOWER[ks[i+1]][1]-DEPOWER[ks[i]][1])*f];}}
+  return [1,1];
+}
+function trimRows(kind,band){
+  const R={
+   up_light:[
+    ['Backstay','Eased to just-snug — let the headstay sag to power up the jib entry.'],
+    ['Forestay','Softest setting; sag adds depth. Firm only enough to steer a groove.'],
+    ['Traveler','Car above centerline so the boom sits on CL with an eased sheet.'],
+    ['Mainsheet','Twist on — top batten telltale flying 100% of the time.'],
+    ['Vang','Slack.'],
+    ['Cunningham','Off — a few luff wrinkles are fast.'],
+    ['Outhaul','Eased 25–50 mm for foot depth.'],
+    ['Jib cars','Forward a hole or two: rounder foot, leech just inside the spreader.']],
+   up_med:[
+    ['Backstay','Progressively on as you pass ~10 kts — flatten the main, firm the headstay.'],
+    ['Forestay','Tightening with backstay; straighter entry, higher pointing.'],
+    ['Traveler','Centerline; drop it in puffs before easing sheet to hold target heel.'],
+    ['Mainsheet','Firm — top batten parallel to the boom.'],
+    ['Vang','Snug, ready to take over in puffs.'],
+    ['Cunningham','Light — just smooth the luff wrinkles.'],
+    ['Outhaul','Firm to max.'],
+    ['Jib cars','Base position; one hole aft when the top telltales stall first.']],
+   up_hvy:[
+    ['Backstay','Max — flattest main, most open upper leech, tightest headstay.'],
+    ['Forestay','As tight as the backstay gives you; a straight luff is everything now.'],
+    ['Traveler','Down; vang-sheet through the puffs. A luffing bubble in the main is fine.'],
+    ['Mainsheet','Hard and played constantly.'],
+    ['Vang','Firm — it owns the leech once the traveler is down.'],
+    ['Cunningham','Max — drag draft forward and open the top.'],
+    ['Outhaul','Max.'],
+    ['Jib cars','Aft — twist the head open, flatten the foot. Weight on the rail.']],
+   dn_light:[
+    ['Backstay','Fully eased — tip forward, project the A2 luff.'],
+    ['Tack line','Eased 6–12 in so the luff rotates to weather.'],
+    ['A2 sheet','Ease to constant curl; talk it round the whole leg.'],
+    ['Vang','Soft — twist in the main, top telltale flowing.'],
+    ['Cunningham','Off.'],
+    ['Outhaul','Eased for foot depth.'],
+    ['Traveler','Boom out; sheet just keeping it off the spreaders.']],
+   dn_hvy:[
+    ['Backstay','Eased, but keep a touch on if the rig pumps.'],
+    ['Tack line','Firm to the sprit — stabilize the luff.'],
+    ['A2 sheet','Slightly over-trimmed from curl to damp rolling; heat up in the lulls.'],
+    ['Vang','Firm — lock the main leech, no death rolls.'],
+    ['Cunningham','Off.'],
+    ['Outhaul','Moderate.'],
+    ['Traveler','Boom out; be ready to sheet on fast for the gybe.']],
+   c0:[
+    ['Backstay','ON — the Code 0 lives or dies on a straight, tight luff.'],
+    ['Tack line','Bar-tight to the sprit.'],
+    ['C0 sheet','It\u2019s a flat sail: trim to the first hint of luff break, don\u2019t over-ease.'],
+    ['Vang','On — controls the main leech with the sheet eased.'],
+    ['Cunningham','Light.'],
+    ['Outhaul','Firm.'],
+    ['Traveler','Down; main twisted to match the reach.']],
+   jib_reach:[
+    ['Backstay','Moderate — keep the headstay from pumping.'],
+    ['Jib cars','Outboard / forward if you have the lead; open the slot.'],
+    ['Mainsheet','Eased to telltales; traveler down first.'],
+    ['Vang','On — leech control with sheet eased.'],
+    ['Cunningham','Light.'],
+    ['Outhaul','Firm.']]
+  };
+  return R[kind]||R.up_med;
+}
+function renderTrim(){
+  if(!document.getElementById('trimBody'))return;
+  const beatT=target('beat',tws);
+  let kind,label;
+  const band=tws<8.5?'light':tws<13.5?'med':'hvy';
+  if(mode==='up'){kind='up_'+(band==='med'?'med':band==='light'?'light':'hvy');label='Upwind · Med Jib';}
+  else if(mode==='dn'){kind=band==='hvy'?'dn_hvy':'dn_light';label='Downwind · A2';}
+  else{
+    const rec=sailRec(twa,tws);
+    if(twa>=55&&twa<=115&&tws<15&&code0Speed(twa,tws)){kind='c0';label=Math.round(twa)+'° TWA · Code 0 (est)';}
+    else if(rec.name==='A2 Asym'){kind=band==='hvy'?'dn_hvy':'dn_light';label=Math.round(twa)+'° TWA · A2';}
+    else if(twa>55){kind='jib_reach';label=Math.round(twa)+'° TWA · Jib reach';}
+    else{kind='up_'+(band==='med'?'med':band==='light'?'light':'hvy');label=Math.round(twa)+'° TWA · Med Jib';}
+  }
+  const bandName={light:'Light',med:'Medium',hvy:'Heavy'}[band];
+  const [reef,flat]=depowerAt(tws);
+  let vpp='';
+  if(mode!=='dn'){
+    if(tws>=14) vpp='<b>VPP depower:</b> at '+tws.toFixed(0)+' kts the cert runs the main at ~'+Math.round(reef*100)+'% area / '+Math.round(flat*100)+'% power upwind — flatten everything first, then shift to the smaller jib or a reef rather than dragging a stalled full main. Hold heel ≤ '+Math.round(beatT.heel)+'°.';
+    else if(tws>=9.5) vpp='<b>VPP depower:</b> the cert already wants the main flattened to ~'+Math.round(flat*100)+'% power at this breeze — get on the backstay before you feel overpowered. Target heel ≈ '+Math.round(beatT.heel)+'°.';
+    else vpp='<b>VPP:</b> full power mode — target heel ≈ '+Math.round(beatT.heel)+'° upwind; heel is your throttle, build it before you point.';
+  } else vpp='<b>VPP:</b> run heel target is only '+Math.round(target('run',tws).heel)+'° — flat and stable is fast. Optimum run angle moves from ~152° at 12 kts to ~143° at 20: heat up as it builds.';
+  $('trimBody').innerHTML='<div class="trimhead"><div class="cond">'+label+'</div><div class="sub">'+bandName+' air · '+tws.toFixed(1)+' kts TWS</div></div>'
+    +trimRows(kind,band).map(r=>'<div class="trimrow"><div class="ctl">'+r[0]+'</div><div class="set">'+r[1]+'</div></div>').join('')
+    +'<div class="trimvpp">'+vpp+'</div>';
+}
+
+/* ================= NIGHT MODE ================= */
+$('nightBtn').onclick=()=>{
+  const on=document.documentElement.classList.toggle('night');
+  storeSet('bdNight',on?'1':'');$('nightBtn').textContent=on?'☀':'☾';
+};
+if(storeGet('bdNight')){document.documentElement.classList.add('night');$('nightBtn').textContent='☀';}
+
+/* ================= GENERIC WIND FIELDS (GFS + ECMWF) ================= */
+let wxE=null;
+function windAtW(W,la,lo,hAfter){
+  if(!W)return null;
+  const tt=W.t0+hAfter*3600;
+  let ti=(tt-W.times[0])/3600;
+  ti=Math.max(0,Math.min(W.times.length-1.001,ti));
+  const t0=Math.floor(ti), tf=ti-t0;
+  const fi=Math.max(0,Math.min(W.NLA-1.001,(la-W.lats[0])/(W.lats[W.NLA-1]-W.lats[0])*(W.NLA-1)));
+  const fj=Math.max(0,Math.min(W.NLO-1.001,(lo-W.lons[0])/(W.lons[W.NLO-1]-W.lons[0])*(W.NLO-1)));
+  const i0=Math.floor(fi), j0=Math.floor(fj), a=fi-i0, b=fj-j0;
+  const idx=(i,j)=>i*W.NLO+j;
+  const g=(arr,h)=>{const w00=arr[idx(i0,j0)][h],w01=arr[idx(i0,j0+1)][h],w10=arr[idx(i0+1,j0)][h],w11=arr[idx(i0+1,j0+1)][h];
+    return w00*(1-a)*(1-b)+w01*(1-a)*b+w10*a*(1-b)+w11*a*b;};
+  const uu=g(W.u,t0)*(1-tf)+g(W.u,t0+1)*tf, vv=g(W.v,t0)*(1-tf)+g(W.v,t0+1)*tf;
+  return {spd:Math.hypot(uu,vv), dir:(Math.atan2(-uu,-vv)*180/Math.PI+360)%360};
+}
+windAt=(la,lo,h)=>windAtW(wx,la,lo,h);
+async function fetchWxM(models,bla,blo,mla,mlo){
+  const la0=Math.min(bla,mla)-0.4, la1=Math.max(bla,mla)+0.4;
+  const lo0=Math.min(blo,mlo)-0.5, lo1=Math.max(blo,mlo)+0.5;
+  const NLA=7,NLO=5, lats=[],lons=[],qa=[],qo=[];
+  for(let i=0;i<NLA;i++)lats.push(la0+(la1-la0)*i/(NLA-1));
+  for(let j=0;j<NLO;j++)lons.push(lo0+(lo1-lo0)*j/(NLO-1));
+  for(const la of lats)for(const lo of lons){qa.push(la.toFixed(3));qo.push(lo.toFixed(3));}
+  const url='https://api.open-meteo.com/v1/forecast?latitude='+qa.join(',')+'&longitude='+qo.join(',')
+    +'&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=kn&timeformat=unixtime&forecast_days=3&models='+models;
+  const res=await fetch(url);
+  if(!res.ok)throw new Error(models+' '+res.status);
+  let js=await res.json(); if(!Array.isArray(js))js=[js];
+  let times=js[0].hourly.time;
+  /* find common valid horizon (hi-res models return nulls past their range) */
+  let L=times.length;
+  js.forEach(pt=>{const s=pt.hourly.wind_speed_10m;
+    for(let i=0;i<s.length;i++){if(s[i]==null||isNaN(s[i])){L=Math.min(L,i);break;}}});
+  if(L<8)throw new Error('model horizon too short here');
+  times=times.slice(0,L);
+  const r=Math.PI/180, u=[],v=[];
+  js.forEach(pt=>{const s=pt.hourly.wind_speed_10m.slice(0,L), d=pt.hourly.wind_direction_10m.slice(0,L);
+    u.push(s.map((sp,i)=>-sp*Math.sin(d[i]*r)));v.push(s.map((sp,i)=>-sp*Math.cos(d[i]*r)));});
+  return {lats,lons,NLA,NLO,times,u,v,t0:Date.now()/1000,model:models};
+}
+fetchWx=async(bla,blo,mla,mlo)=>{wx=await fetchWxM('gfs_seamless',bla,blo,mla,mlo);};
+
+/* ================= MULTI-LEG COURSE ================= */
+var course=[], activeIdx=0;
+try{const s=storeGet('bdCourse');if(s){const o=JSON.parse(s);course=o.c||[];activeIdx=Math.min(o.a||0,Math.max(0,course.length-1));}}catch(e){}
+function saveCourse(){storeSet('bdCourse',JSON.stringify({c:course,a:activeIdx}));}
+function renderCourse(){
+  const box=$('courseBox');
+  if(!course.length){box.style.display='none';return;}
+  box.style.display='block';
+  $('legLbl').textContent='Leg '+(activeIdx+1)+'/'+course.length+' → '+course[activeIdx].name;
+  $('courseList').innerHTML=course.map((c,i)=>
+    '<div class="courseitem'+(i===activeIdx?' active':'')+'"><span class="n">'+(i+1)+'. '+c.name+'</span>'
+    +'<span style="font-family:var(--mono);font-size:11px;color:var(--faint)">'+c.lat.toFixed(3)+', '+c.lon.toFixed(3)+'</span>'
+    +'<button class="x" data-i="'+i+'">✕</button></div>').join('');
+  $('courseList').querySelectorAll('.x').forEach(b=>b.onclick=()=>{
+    course.splice(+b.dataset.i,1);
+    if(activeIdx>=course.length)activeIdx=Math.max(0,course.length-1);
+    saveCourse();renderCourse();wpRender();
+  });
+}
+$('btnAddWp').onclick=()=>{
+  const la=parseFloat($('inMlat').value), lo=parseFloat($('inMlon').value);
+  if(isNaN(la)||isNaN(lo)){$('gpsStat').textContent='Enter or pick a mark first.';return;}
+  const sel=$('selMark');
+  const name=sel.value?sel.options[sel.selectedIndex].text.replace(' (approx)',''):('WP '+(course.length+1)+' ('+la.toFixed(2)+','+lo.toFixed(2)+')');
+  course.push({lat:la,lon:lo,name});saveCourse();renderCourse();wpRender();
+};
+$('btnNextLeg').onclick=()=>{if(activeIdx<course.length-1){activeIdx++;saveCourse();renderCourse();wpRender();}};
+renderCourse();
+
+/* ================= PERFORMANCE vs POLAR ================= */
+let lastFix=null;
+function onFix(p){
+  const la=p.coords.latitude, lo=p.coords.longitude, t=p.timestamp||Date.now();
+  let sog=p.coords.speed!=null?p.coords.speed*1.9438:null;
+  let cog=p.coords.heading!=null&&!isNaN(p.coords.heading)?p.coords.heading:null;
+  if((sog==null||cog==null)&&lastFix&&t-lastFix.t>3000&&t-lastFix.t<180000){
+    const bd=brgDist(lastFix.la,lastFix.lo,la,lo);
+    if(sog==null)sog=bd.dist/((t-lastFix.t)/3600000);
+    if(cog==null&&bd.dist>0.003)cog=bd.brg;
+  }
+  lastFix={la,lo,t};
+  if(typeof autoWind==='function')autoWind();
+  renderPerf(sog,cog,la,lo);
+  renderSun(la,lo);
+}
+function renderPerf(sog,cog,la,lo){
+  const box=$('perfBox'); box.style.display='block';
+  const twd=parseFloat($('inTwd').value);
+  $('pfSog').textContent=sog!=null?sog.toFixed(1):'—';
+  $('pfCog').textContent=cog!=null?String(Math.round(cog)).padStart(3,'0')+'°':'—';
+  if(isNaN(twd)||sog==null||cog==null){
+    $('pfPct').textContent='—';$('pfPct').parentElement.className='pct';
+    $('pfNote').textContent=isNaN(twd)?'Set Wind Dir in the waypoint panel for targets':'Waiting for GPS speed/heading — start moving';
+    return;
+  }
+  const twaL=Math.abs(sd(twd,cog));
+  const ss=bestSail(twaL,tws);
+  $('pfTwa').textContent=Math.round(twaL)+'°';
+  $('pfTgt').textContent=ss?ss.bsp.toFixed(1)+' ('+ss.sail+')':'—';
+  $('pfVmgW').textContent=(sog*Math.cos(twaL*Math.PI/180)).toFixed(1);
+  let vmc='—';
+  let mla=parseFloat($('inMlat').value), mlo=parseFloat($('inMlon').value);
+  if(course.length){mla=course[activeIdx].lat;mlo=course[activeIdx].lon;}
+  if(!isNaN(mla)&&!isNaN(mlo)){
+    const bm=brgDist(la,lo,mla,mlo);
+    vmc=(sog*Math.cos(sd(bm.brg,cog)*Math.PI/180)).toFixed(1);
+  }
+  $('pfVmgM').textContent=vmc;
+  const el=$('pfPct');
+  if(ss&&ss.bsp>0.5){
+    const pct=sog/ss.bsp*100;
+    el.textContent=Math.round(pct);
+    el.parentElement.className='pct '+(pct>=97?'good':pct>=85?'ok':'bad');
+    $('pfNote').textContent='TWS '+tws.toFixed(1)+' from slider · GPS ground speed (current shows as bias)';
+  }else{
+    el.textContent='—';el.parentElement.className='pct';
+    const bA=target('beat',tws).twa;
+    $('pfNote').textContent=twaL<bA?'TWA '+Math.round(twaL)+'° is below the '+Math.round(bA)+'° beat angle — pinching, no polar target':'No polar target at this angle';
+  }
+}
+
+/* ================= SUN / MOON ================= */
+function sunTimes(lat,lon,d){
+  d=d||new Date();const rad=Math.PI/180;
+  const Jdate=d.getTime()/86400000+2440587.5;
+  const n=Math.floor(Jdate-2451545.0+0.0008);
+  const Jstar=n-lon/360;
+  const M=(357.5291+0.98560028*Jstar)%360;
+  const C=1.9148*Math.sin(M*rad)+0.02*Math.sin(2*M*rad)+0.0003*Math.sin(3*M*rad);
+  const lam=(M+C+180+102.9372)%360;
+  const Jt=2451545.0+Jstar+0.0053*Math.sin(M*rad)-0.0069*Math.sin(2*lam*rad);
+  const del=Math.asin(Math.sin(lam*rad)*Math.sin(23.4397*rad));
+  const cw=(Math.sin(-0.833*rad)-Math.sin(lat*rad)*Math.sin(del))/(Math.cos(lat*rad)*Math.cos(del));
+  if(cw<-1||cw>1)return null;
+  const w=Math.acos(cw)/rad, toD=J=>new Date((J-2440587.5)*86400000);
+  return {rise:toD(Jt-w/360),set:toD(Jt+w/360)};
+}
+function moonInfo(){
+  const age=((Date.now()-Date.UTC(2000,0,6,18,14))/86400000)%29.53059;
+  const ill=Math.round((1-Math.cos(2*Math.PI*age/29.53059))/2*100);
+  const names=['new','waxing crescent','first quarter','waxing gibbous','full','waning gibbous','last quarter','waning crescent'];
+  return {ill,name:names[Math.floor(((age/29.53059)*8+0.5))%8]};
+}
+function renderSun(la,lo){
+  const st=sunTimes(la,lo), m=moonInfo(), el=$('sunStrip');
+  if(!st){el.style.display='none';return;}
+  const f=d=>d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  el.style.display='flex';
+  el.innerHTML='<span>☀ rise</span> '+f(st.rise)+' <span>set</span> '+f(st.set)+' <span>☾</span> '+m.name+' '+m.ill+'%';
+}
+
+/* ================= WIND SHIFT TRACKER ================= */
+let windLog=[];let shiftOpen=false;
+try{const s=storeGet('bdWind');if(s)windLog=JSON.parse(s)||[];}catch(e){}
+$('shiftToggle').onclick=()=>{shiftOpen=!shiftOpen;$('shiftBox').classList.toggle('open',shiftOpen);$('shiftChev').textContent=shiftOpen?'▾':'▸';renderShift();};
+function logWind(){
+  const twd=parseFloat($('inTwd').value); if(isNaN(twd))return;
+  const last=windLog[windLog.length-1];
+  if(last&&last.twd===twd&&Date.now()-last.t<60000)return;
+  windLog.push({t:Date.now(),twd,tws:tws});
+  if(windLog.length>200)windLog=windLog.slice(-200);
+  storeSet('bdWind',JSON.stringify(windLog));renderShift();
+}
+$('inTwd').addEventListener('change',logWind);
+$('btnLogWind').onclick=()=>{logWind();$('shiftStat').textContent=windLog.length+' entries logged';};
+function circMean(arr){let x=0,y=0;arr.forEach(a=>{x+=Math.cos(a*Math.PI/180);y+=Math.sin(a*Math.PI/180);});return (Math.atan2(y,x)*180/Math.PI+360)%360;}
+function renderShift(){
+  const svgS=$('shiftChart'), v=$('shiftVerdict');
+  if(windLog.length<2){svgS.style.display='none';v.innerHTML=windLog.length?'<b>1 entry.</b> Log the wind each time it shifts to see the trend.':'';return;}
+  const L=windLog.slice(-40), mean=circMean(L.map(e=>e.twd));
+  const devs=L.map(e=>sd(e.twd,mean));
+  const lo=Math.min(...devs,-5), hi=Math.max(...devs,5);
+  const X=i=>15+(i/(L.length-1))*290, Y=d=>78-((d-lo)/(hi-lo))*66;
+  let s='<line x1="15" y1="'+Y(0).toFixed(1)+'" x2="305" y2="'+Y(0).toFixed(1)+'" stroke="#223140" stroke-width="1"/>';
+  s+='<text x="308" y="'+(Y(0)+3).toFixed(1)+'" fill="#4a6072" font-size="8" font-family="JetBrains Mono">'+Math.round(mean)+'°</text>';
+  s+='<polyline fill="none" stroke="#63b3ff" stroke-width="2" points="'+devs.map((d,i)=>X(i).toFixed(1)+','+Y(d).toFixed(1)).join(' ')+'"/>';
+  devs.forEach((d,i)=>{s+='<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(d).toFixed(1)+'" r="2" fill="#63b3ff"/>';});
+  svgS.innerHTML=s;svgS.style.display='block';
+  const lastDev=devs[devs.length-1];
+  let flips=0;for(let i=2;i<devs.length;i++){if((devs[i]-devs[i-1])*(devs[i-1]-devs[i-2])<0)flips++;}
+  const oscil=flips>=(devs.length-2)*0.45;
+  const rec=devs.slice(-4);
+  const mono=rec.length>=4&&(rec.every((d,i)=>i===0||d>=rec[i-1])||rec.every((d,i)=>i===0||d<=rec[i-1]))&&Math.abs(rec[3]-rec[0])>6;
+  let txt='<b>Mean TWD '+Math.round(mean)+'°</b>, now '+(lastDev>=0?'+':'')+Math.round(lastDev)+'° ('+(lastDev>=0?'right/veered':'left/backed')+'). ';
+  txt+=lastDev>3?'Upwind: <b>starboard tack lifted</b>. ':lastDev<-3?'Upwind: <b>port tack lifted</b>. ':'Near the mean — neutral. ';
+  txt+=mono?'<b>Trending '+(rec[3]>rec[0]?'right':'left')+' persistently</b> — sail toward the shift.':(oscil?'<b>Oscillating</b> — tack on the headers.':'');
+  v.innerHTML=txt;
+}
+renderShift();
+
+/* ================= START LINE ================= */
+let pinEnd=null, boatEnd=null, startDl=null, startTimer=null, startOpen=false;
+$('startToggle').onclick=()=>{startOpen=!startOpen;$('startBox').classList.toggle('open',startOpen);$('startChev').textContent=startOpen?'▾':'▸';};
+function ping(which){
+  const la=parseFloat($('inLat').value), lo=parseFloat($('inLon').value);
+  if(isNaN(la)||isNaN(lo)){$('startStat').textContent='Need a GPS position first — turn on GPS.';return;}
+  if(which==='boat')boatEnd={la,lo};else pinEnd={la,lo};
+  $('startStat').textContent=(which==='boat'?'Boat end':'Pin end')+' pinged.';
+  renderStart();
+}
+$('btnPingBoat').onclick=()=>ping('boat');
+$('btnPingPin').onclick=()=>ping('pin');
+function renderStart(){
+  const box=$('startStats');
+  if(!boatEnd||!pinEnd){box.style.display='none';return;}
+  box.style.display='grid';
+  const lb=brgDist(pinEnd.la,pinEnd.lo,boatEnd.la,boatEnd.lo);
+  const twd=parseFloat($('inTwd').value);
+  let biasHtml='<div class="cell"><div class="k">Bias</div><div class="v">set TWD</div></div>';
+  if(!isNaN(twd)){
+    const comp=Math.cos(sd(lb.brg,twd)*Math.PI/180);
+    const bias=Math.round(90-Math.abs(sd(lb.brg,twd)));
+    biasHtml='<div class="cell"><div class="k">Favored</div><div class="v" style="color:'+(comp>0.02?'#3ecf74':comp<-0.02?'#ff5a5f':'#e9f2f7')+'">'
+      +(Math.abs(bias)<2?'Square':(comp>0?'Boat':'Pin')+' +'+Math.abs(bias)+'°')+'</div></div>';
+  }
+  let dl='—';
+  const la=parseFloat($('inLat').value), lo=parseFloat($('inLon').value);
+  if(!isNaN(la)){
+    const bp=brgDist(pinEnd.la,pinEnd.lo,la,lo);
+    const x=Math.abs(bp.dist*Math.sin(sd(bp.brg,lb.brg)*Math.PI/180));
+    const beat=target('beat',tws);
+    dl=(x*1852).toFixed(0)+' m · '+fmtTime(x/beat.btv*3600)+' @ tgt';
+  }
+  box.innerHTML='<div class="cell"><div class="k">Line</div><div class="v">'+(lb.dist*1852).toFixed(0)+' m</div></div>'+biasHtml
+    +'<div class="cell"><div class="k">Dist to line</div><div class="v" style="font-size:13px">'+dl+'</div></div>';
+}
+function setStart(min){startDl=Date.now()+min*60000;if(!startTimer)startTimer=setInterval(tickStart,300);tickStart();}
+$('t5').onclick=()=>setStart(5);$('t4').onclick=()=>setStart(4);$('t1').onclick=()=>setStart(1);
+$('tSync').onclick=()=>{if(startDl){const rem=startDl-Date.now();startDl=Date.now()+Math.round(rem/60000)*60000;tickStart();}};
+function tickStart(){
+  if(!startDl)return;
+  const rem=(startDl-Date.now())/1000, el=$('startCd');
+  if(rem<=0){el.textContent='GO!';el.className='t now';if(rem<-30){clearInterval(startTimer);startTimer=null;startDl=null;}}
+  else{el.textContent=fmtTime(rem);el.className='t'+(rem<30?' now':'');renderStart();}
+}
+
+/* ================= GPX EXPORT ================= */
+$('btnGpx').onclick=()=>{
+  if(!track.length){$('gpsStat').textContent='No track to export.';return;}
+  let g='<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="BlackDiamondTargets" xmlns="http://www.topografix.com/GPX/1/1">\n<trk><name>Black Diamond '+new Date(track[0][2]).toISOString().slice(0,10)+'</name><trkseg>\n';
+  track.forEach(p=>{g+='<trkpt lat="'+p[0]+'" lon="'+p[1]+'"><time>'+new Date(p[2]).toISOString()+'</time></trkpt>\n';});
+  g+='</trkseg></trk>\n</gpx>';
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([g],{type:'application/gpx+xml'}));
+  a.download='black-diamond-track.gpx';a.click();
+  $('gpsStat').textContent='GPX exported ('+track.length+' points, '+trackNm().toFixed(1)+' nm).';
+};
+
+/* ================= WAKE LOCK ================= */
+let wakeLock=null;
+async function acquireWake(){try{wakeLock=await navigator.wakeLock.request('screen');$('wakeBtn').className='on';}catch(e){wakeLock=null;$('wakeBtn').className='';$('gpsStat').textContent='Screen wake lock unavailable (needs iOS 16.4+ / HTTPS).';}}
+$('wakeBtn').onclick=async()=>{
+  if(wakeLock){try{await wakeLock.release();}catch(e){} wakeLock=null;$('wakeBtn').className='';return;}
+  if(!('wakeLock' in navigator)){$('gpsStat').textContent='Wake lock not supported on this browser.';return;}
+  acquireWake();
+};
+document.addEventListener('visibilitychange',()=>{if(wakeLock!==null&&document.visibilityState==='visible')acquireWake();});
+
+/* ================= TWD/TWS NUDGES ================= */
+document.querySelectorAll('.nudges button').forEach(b=>{
+  b.onclick=()=>{
+    if(b.dataset.twd){
+      const cur=parseFloat($('inTwd').value);
+      const v=((isNaN(cur)?0:cur)+parseInt(b.dataset.twd)+360)%360;
+      $('inTwd').value=Math.round(v);
+      if(typeof logWind==='function')logWind();
+      wpRender();
+    }else if(b.dataset.tws){
+      twsTouched=true;
+      tws=Math.max(6,Math.min(20,tws+parseInt(b.dataset.tws)));
+      $('twsSlider').value=tws;render();
+    }
+  };
+});
+$('btnStartNow').onclick=()=>{$('inStart').value='';$('routeStat').textContent='Start = now (current position & time).';};
+
+
+/* ================= LAND AVOIDANCE (no-go mask, 2 nm offshore) =================
+   Approximate coastline + island + shoal geometry with a 2 nm buffer.
+   Charted channels (Manitou Passage, Grays Reef, Straits) are open corridors
+   forced via the course gate waypoints. NOT survey data — verify vs chart. */
+const LAND={
+ shore:[[41.85,-87.62],[42.05,-87.68],[42.36,-87.82],[42.58,-87.81],[42.73,-87.78],[43.04,-87.87],[43.39,-87.86],[43.75,-87.70],[44.09,-87.65],[44.15,-87.56],[44.46,-87.49],[44.61,-87.43],[44.79,-87.31],[45.06,-87.12],[45.29,-87.03],[45.38,-86.90],[45.42,-86.83],[45.57,-86.55],[45.95,-86.25],[45.92,-85.91],[46.05,-85.60],[46.10,-85.45],[45.99,-85.05],[45.85,-84.87],[45.855,-84.725],[45.875,-84.60],[45.885,-84.50],[45.74,-84.50],[45.777,-84.72],[45.76,-85.00],[45.71,-85.03],[45.64,-85.05],[45.43,-85.02],[45.37,-84.96],[45.32,-85.26],[45.10,-85.37],[44.80,-85.53],[45.02,-85.50],[45.21,-85.55],[45.10,-85.64],[45.02,-85.76],[44.95,-85.87],[44.90,-86.03],[44.91,-86.06],[44.81,-86.07],[44.69,-86.26],[44.63,-86.25],[44.25,-86.35],[44.13,-86.43],[44.06,-86.53],[43.95,-86.46],[43.65,-86.54],[43.23,-86.34],[43.06,-86.25],[42.77,-86.21],[42.40,-86.29],[42.11,-86.49],[41.72,-86.91],[41.62,-87.26],[41.73,-87.53]],
+ islands:[
+  [[45.75,-85.53],[45.73,-85.62],[45.62,-85.60],[45.58,-85.51],[45.65,-85.47],[45.73,-85.48]],      // Beaver
+  [[45.81,-85.53],[45.77,-85.56],[45.76,-85.49],[45.80,-85.47]],                                     // Garden
+  [[45.79,-85.40],[45.76,-85.42],[45.75,-85.35],[45.78,-85.33]],                                     // Hog
+  [[45.75,-85.68],[45.72,-85.71],[45.71,-85.65],[45.74,-85.63]],                                     // High
+  [[45.44,-85.82],[45.40,-85.85],[45.39,-85.79],[45.43,-85.77]],                                     // S Fox
+  [[45.50,-85.79],[45.47,-85.81],[45.47,-85.76],[45.50,-85.75]],                                     // N Fox
+  [[45.13,-86.06],[45.05,-86.08],[45.00,-86.02],[45.03,-85.96],[45.11,-85.98]],                      // N Manitou
+  [[45.04,-86.13],[44.99,-86.15],[44.99,-86.08],[45.03,-86.07]]                                      // S Manitou
+ ],
+ shoals:[
+  [[45.69,-85.28],[45.78,-85.20],[45.79,-85.155],[45.70,-85.19]],                                    // Grays Reef shoal (W of channel)
+  [[45.70,-85.12],[45.80,-85.10],[45.84,-85.00],[45.78,-84.96],[45.70,-85.00]],                      // Vienna/Simmons/Waugoshance (E of channel)
+  [[45.83,-85.20],[45.87,-85.10],[45.84,-85.05],[45.80,-85.14]]                                      // White Shoal area
+ ]
+};
+/* open corridors — charted channels; the mask never blocks near these lines */
+const CORRIDORS=[
+ [[41.878,-87.590],[41.9688,-87.6175],[42.06,-87.58]],                            // Chicago start area + M1 Skyline
+ [[44.90,-86.09],[45.00,-86.00],[45.09,-85.93],[45.20,-85.70],[45.28,-85.60]],   // Manitou Passage
+ [[45.68,-85.16],[45.74,-85.148],[45.764,-85.1477],[45.8155,-85.137],[45.82,-85.05]],  // Grays Reef gate + CAN 3
+ [[45.82,-85.05],[45.81,-84.95],[45.80,-84.90],[45.8185,-84.7265],[45.8225,-84.706],[45.836,-84.65],[45.845,-84.617]] // GR exit / Straits / bridge spans / 2A / finish
+];
+let mask=null;
+function segDistNm(la,lo,a,b,kx){ // point to segment, flat projection
+  const px=lo*kx, py=la*110.57, ax=a[1]*kx, ay=a[0]*110.57, bx=b[1]*kx, by=b[0]*110.57;
+  const dx=bx-ax, dy=by-ay, L2=dx*dx+dy*dy;
+  let t=L2?((px-ax)*dx+(py-ay)*dy)/L2:0; t=Math.max(0,Math.min(1,t));
+  return Math.hypot(px-(ax+dx*t), py-(ay+dy*t))/1.852;
+}
+function buildMask(la0,la1,lo0,lo1){
+  la0-=0.5;la1+=0.5;lo0-=0.6;lo1+=0.6;
+  let dLa=0.018, kx0=111.32*Math.cos((la0+la1)/2*Math.PI/180), dLo=0.018*110.57/kx0;
+  let NR=Math.ceil((la1-la0)/dLa), NC=Math.ceil((lo1-lo0)/dLo);
+  if(NR*NC>150000){const s=Math.sqrt(NR*NC/150000);dLa*=s;dLo*=s;NR=Math.ceil((la1-la0)/dLa);NC=Math.ceil((lo1-lo0)/dLo);}
+  const shoreSegs=[],segs=[];
+  const addPoly=(arr,p,closed)=>{for(let i=0;i<p.length-(closed?0:1);i++)arr.push([p[i],p[(i+1)%p.length]]);};
+  addPoly(shoreSegs,LAND.shore,true);
+  LAND.islands.forEach(p=>addPoly(shoreSegs,p,true));      // hard land edges
+  segs.push(...shoreSegs);
+  LAND.shoals.forEach(p=>addPoly(segs,p,true));            // shoals: soft (corridor may cross)
+  const csegs=[]; CORRIDORS.forEach(c=>{for(let i=0;i<c.length-1;i++)csegs.push([c[i],c[i+1]]);});
+  const hardPolys=LAND.islands, softPolys=LAND.shoals;
+  const inPoly=(la,lo,p)=>{let w=false;
+    for(let i=0,j=p.length-1;i<p.length;j=i++){
+      if((p[i][1]>lo)!==(p[j][1]>lo)&&la<(p[j][0]-p[i][0])*(lo-p[i][1])/(p[j][1]-p[i][1])+p[i][0])w=!w;}
+    return w;};
+  const m=new Uint8Array(NR*NC);
+  for(let r=0;r<NR;r++)for(let c=0;c<NC;c++){
+    const la=la0+r*dLa, lo=lo0+c*dLo, kx=111.32*Math.cos(la*Math.PI/180);
+    /* HARD LAND (islands + shoreline) — corridors can never open these */
+    let hard=false;
+    for(const p of hardPolys){if(inPoly(la,lo,p)){hard=true;break;}}
+    if(!hard)for(const s of shoreSegs){if(segDistNm(la,lo,s[0],s[1],kx)<0.5){hard=true;break;}}
+    if(hard){m[r*NC+c]=1;continue;}
+    /* corridors: charted channels stay open through buffers and shoal zones */
+    let inCor=false;
+    for(const s of csegs){if(segDistNm(la,lo,s[0],s[1],kx)<1.4){inCor=true;break;}}
+    if(inCor)continue;
+    /* SOFT no-go: shoal interiors + 2 nm offshore buffer */
+    let soft=false;
+    for(const p of softPolys){if(inPoly(la,lo,p)){soft=true;break;}}
+    if(!soft)for(const s of segs){if(segDistNm(la,lo,s[0],s[1],kx)<2.0){soft=true;break;}}
+    if(soft)m[r*NC+c]=1;
+  }
+  mask={m,la0,lo0,dLa,dLo,NR,NC};
+}
+function blockedAt(la,lo){
+  if(!mask)return false;
+  const r=Math.round((la-mask.la0)/mask.dLa), c=Math.round((lo-mask.lo0)/mask.dLo);
+  if(r<0||c<0||r>=mask.NR||c>=mask.NC)return true;   // outside the masked area = unknown = blocked
+  return mask.m[r*mask.NC+c]===1;
+}
+function segBlocked(la1,lo1,la2,lo2,gla,glo){
+  const d=brgDist(la1,lo1,la2,lo2), n=Math.max(2,Math.ceil(d.dist/0.8));
+  for(let i=1;i<=n;i++){
+    const f=i/n, sla=la1+(la2-la1)*f, slo=lo1+(lo2-lo1)*f;
+    if(!blockedAt(sla,slo))continue;
+    /* grace: a blocked sample is forgiven only if it's right at the leg start (harbor / gate buffer) */
+    if(gla!==undefined&&brgDist(gla,glo,sla,slo).dist<1.5)continue;
+    return true;
+  }
+  return false;
+}
+
+/* ---- 2026 Mac course — required marks from SI Appendix B4.1 (WGS84),
+        plus Manitou Passage strategy gates (optional routing, not marks) ---- */
+const MAC_COURSE=[
+ {lat:41.96883,lon:-87.61750,name:'M1 Skyline (stbd) [SI]'},
+ {lat:44.945,lon:-86.075,name:'Manitou Pass S (strategy)'},
+ {lat:45.060,lon:-85.950,name:'Manitou Pass mid (strategy)'},
+ {lat:45.270,lon:-85.610,name:'Off GT Light (strategy)'},
+ {lat:45.76400,lon:-85.14766,name:'M2 Grays Reef gate [SI]'},
+ {lat:45.8155,lon:-85.1370,name:'M3 CAN 3 (stbd) [SI]'},
+ {lat:45.8185,lon:-84.7265,name:'M4 Bridge center spans [SI]'},
+ {lat:45.8225,lon:-84.7060,name:'M5 S Graham Shoal 2A (port) [SI]'},
+ {lat:45.845,lon:-84.617,name:'Finish (SI B6)'}
+];
+$('btnMac').onclick=()=>{
+  course=MAC_COURSE.map(w=>({...w})); activeIdx=0; saveCourse(); renderCourse(); wpRender();
+  $('gpsStat').textContent='2026 Mac course loaded: SI marks + Manitou strategy gates. SI alternative: pass W of Beaver instead of the GR gate.';
+};
+
+
+/* ================= YB TRACKING FLEET OVERLAY ================= */
+let fleetLyr=null, ybNames={}, ybTimer=null, ybLast={};
+$('inYbRace').value=storeGet('bdYbRace')||'chimac2026';
+async function ybFetch(url){
+  try{const r=await fetch(url);if(r.ok)return await r.text();throw 0;}
+  catch(e){ /* CORS fallback via public proxy */
+    const r=await fetch('https://api.allorigins.win/raw?url='+encodeURIComponent(url));
+    if(!r.ok)throw new Error('fetch blocked');
+    return await r.text();
+  }
+}
+function ybParseIds(txt){
+  const m={};
+  txt.split(/\r?\n/).forEach(l=>{
+    const i=l.indexOf(',');
+    if(i>0)m[l.slice(0,i).trim()]=l.slice(i+1).trim();
+  });
+  return m;
+}
+function ybParsePositions(txt){
+  /* tolerant: per line find a plausible lat, lon pair; first token = boat id/name */
+  const out={};
+  txt.split(/\r?\n/).forEach(l=>{
+    const t=l.split(/[,\t;]+/).map(s=>s.trim()).filter(Boolean);
+    if(t.length<3)return;
+    let lat=null,lon=null;
+    for(let i=1;i<t.length;i++){
+      const v=parseFloat(t[i]);
+      if(isNaN(v))continue;
+      if(lat===null&&v>40&&v<47)lat=v;
+      else if(lat!==null&&lon===null&&v>-93&&v<-82)lon=v;
+    }
+    if(lat===null||lon===null)return;
+    const id=t[0], ts=t.find(s=>/\d{1,2}:\d{2}/.test(s)||/^\d{10,}$/.test(s))||'';
+    if(!out[id])out[id]=[];
+    out[id].push({lat,lon,ts});
+  });
+  return out;
+}
+let ybTeamTags={}, ybTagsLoaded=false;
+const nrm=s=>String(s).toLowerCase().replace(/[^a-z0-9]/g,'');
+async function ybLoadSetup(race){
+  /* RaceSetup JSON carries teams + class/section tags */
+  try{
+    const js=JSON.parse(await ybFetch('https://cf.yb.tl/JSON/'+race+'/RaceSetup'));
+    const tagName={}; (js.tags||[]).forEach(t=>tagName[t.id]=t.name||String(t.id));
+    ybTeamTags={};
+    (js.teams||[]).forEach(t=>{
+      const tags=(t.tags||[]).map(id=>tagName[id]||String(id));
+      ybTeamTags[nrm(t.name)]=tags;
+    });
+    const sel=$('ybClass'), saved=storeGet('bdYbClass');
+    const all=[...new Set(Object.values(ybTeamTags).flat())].sort();
+    sel.innerHTML='<option value="">All fleet</option>'+all.map(t=>'<option'+((saved?t===saved:/\b4\b/.test(t))?' selected':'')+'>'+t+'</option>').join('');
+    $('ybFilterRow').style.display='flex';
+    ybTagsLoaded=true;
+  }catch(e){ /* no RaceSetup: name filter still works */
+    $('ybFilterRow').style.display='flex';
+    $('ybClass').style.display='none';
+  }
+}
+$('ybClass')&&($('ybClass').onchange=()=>{storeSet('bdYbClass',$('ybClass').value);ybLoad();});
+$('ybText')&&($('ybText').addEventListener('change',ybLoad));
+async function ybLoad(){
+  const race=$('inYbRace').value.trim();
+  if(!race){return;}
+  storeSet('bdYbRace',race);
+  const st=$('ybStat'); st.style.display='block'; st.textContent='Fetching YB fleet…';
+  if(!map){st.textContent='Open the map first (set positions or load the Mac course).';return;}
+  try{
+    try{ybNames=ybParseIds(await ybFetch('https://yb.tl/'+race+'-boatids.txt'));}catch(e){}
+    if(!ybTagsLoaded)await ybLoadSetup(race);
+    const pos=ybParsePositions(await ybFetch('https://yb.tl/'+race+'-expedition.txt'));
+    const n=Object.keys(pos).length;
+    if(!n)throw new Error('no positions parsed — race key wrong or feed not live yet');
+    if(!fleetLyr)fleetLyr=L.layerGroup().addTo(map);
+    fleetLyr.clearLayers();
+    const cls=$('ybClass')?$('ybClass').value:'', txt=($('ybText')?$('ybText').value:'').toLowerCase();
+    let shown=0;
+    Object.entries(pos).forEach(([id,list])=>{
+      const p=list[list.length-1];
+      const name=ybNames[id]||id;
+      const isBD=/black\s*diamond/i.test(name);
+      if(!isBD){ /* Black Diamond always shows */
+        if(cls){const tags=ybTeamTags[nrm(name)];if(!tags||!tags.includes(cls))return;}
+        if(txt&&!name.toLowerCase().includes(txt))return;
+      }
+      shown++;
+      /* SOG/COG from previous fix if the feed carries history */
+      let meta='';
+      const prev=(ybLast[id]&&ybLast[id].lat!==p.lat)?ybLast[id]:(list.length>1?list[list.length-2]:null);
+      if(prev){
+        const bd=brgDist(prev.lat,prev.lon,p.lat,p.lon);
+        if(prev.t&&Date.now()-prev.t>60000){
+          const sog=bd.dist/((Date.now()-prev.t)/3600000);
+          if(sog<30)meta='<br>SOG ~'+sog.toFixed(1)+' kt · COG '+String(Math.round(bd.brg)).padStart(3,'0')+'°';
+        }else if(bd.dist>0.01)meta='<br>COG '+String(Math.round(bd.brg)).padStart(3,'0')+'° (from last fix)';
+      }
+      ybLast[id]={lat:p.lat,lon:p.lon,t:Date.now()};
+      const ic=L.divIcon({className:'',iconSize:[12,12],iconAnchor:[6,6],
+        html:'<div style="width:10px;height:10px;border-radius:50%;background:'+(isBD?'#ffbe5c':'#c792ff')+';border:2px solid #0a1118;'+(isBD?'box-shadow:0 0 0 2px #ffbe5c':'')+'"></div>'});
+      L.marker([p.lat,p.lon],{icon:ic}).addTo(fleetLyr)
+        .bindTooltip('<b>'+name+'</b><br>'+p.lat.toFixed(4)+', '+p.lon.toFixed(4)+(p.ts?'<br>'+p.ts:'')+meta,{direction:'top'});
+    });
+    st.innerHTML='<b>YB fleet:</b> '+shown+' of '+n+' boats plotted'+(cls?' — '+cls:'')+' ('+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+'). Tap a dot for details. Purple = fleet, amber ring = Black Diamond.';
+  }catch(e){
+    st.innerHTML='YB fetch failed: '+e.message+'. Check the race key (it\'s the last part of the tracker URL, yb.tl/<b>xxxx</b>). Feed appears once the tracker is live; needs internet.';
+  }
+}
+$('btnYb').onclick=ybLoad;
+$('btnYbAuto').onclick=()=>{
+  if(ybTimer){clearInterval(ybTimer);ybTimer=null;$('btnYbAuto').style.color='';$('btnYbAuto').style.borderColor='';return;}
+  ybLoad(); ybTimer=setInterval(ybLoad,300000);
+  $('btnYbAuto').style.color='#3ecf74';$('btnYbAuto').style.borderColor='#3ecf74';
+};
+
+/* ================= AUTO WIND DEFAULT (best_match now at boat position) ================= */
+let autoWindTried=false;
+async function autoWind(){
+  if(autoWindTried)return;
+  const la=parseFloat($('inLat').value), lo=parseFloat($('inLon').value);
+  if(isNaN(la)||isNaN(lo))return;
+  const needTwd=!$('inTwd').value, needTws=!twsTouched;
+  if(!needTwd&&!needTws)return;
+  autoWindTried=true;
+  try{
+    const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude='+la.toFixed(3)+'&longitude='+lo.toFixed(3)
+      +'&current=wind_speed_10m,wind_direction_10m&wind_speed_unit=kn&models=best_match');
+    if(!r.ok)return;
+    const js=await r.json(), c=js.current;
+    if(!c)return;
+    let applied=[];
+    if(needTwd&&!$('inTwd').value){$('inTwd').value=Math.round(c.wind_direction_10m);applied.push('TWD '+Math.round(c.wind_direction_10m)+'°');}
+    if(needTws&&!twsTouched){tws=Math.max(6,Math.min(20,Math.round(c.wind_speed_10m*2)/2));$('twsSlider').value=tws;applied.push('TWS '+tws.toFixed(1)+' kt');}
+    if(applied.length){
+      $('gpsStat').textContent='Wind defaulted from forecast (best match, now): '+applied.join(', ')+'. Override with instrument readings.';
+      if(typeof logWind==='function')logWind();
+      render();
+    }
+  }catch(e){autoWindTried=false;}
+}
+
+/* ================= PRE-RACE DEMO DEFAULTS (auto-expire 08:00 Jul 11) ================= */
+(function(){
+  const cutoff=new Date(2026,6,11,8,0,0); // local 08:00 Sat Jul 11 2026
+  if(Date.now()>=cutoff.getTime())return;
+  if(!$('inLat').value&&!$('inLon').value){
+    $('inLat').value='41.88900'; $('inLon').value='-87.57600'; // ~0.75 nm E of Chicago Hbr breakwater S light (approx)
+    renderSun(41.889,-87.576);
+  }
+  if(!$('inStart').value)$('inStart').value='2026-07-11T12:20';
+  $('routeStat').textContent='Pre-race defaults loaded: boat at the start line, route start 12:20 Sat (Section 4 gun). Live GPS overrides position.';
+  wpRender();
+  autoWind();
+})();
+
+/* ================= SERVICE WORKER (offline) ================= */
+if('serviceWorker' in navigator){try{navigator.serviceWorker.register('sw.js');}catch(e){}}
+
+var trimReady=true;
+renderTrim();
+
+</script>
+</body>
+</html>
