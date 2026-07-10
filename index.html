@@ -121,6 +121,13 @@ input[type=range]{width:100%;margin:14px 0 10px;accent-color:var(--amber);height
 .markrow{display:flex;align-items:center;gap:10px;margin-bottom:8px}
 .markrow .k{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);flex:0 0 auto}
 .markrow select{flex:1;padding:9px 8px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-family:var(--cond);font-size:15px}
+.nudges{display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.nudges .k{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.nudges button{min-width:44px;padding:9px 0;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-family:var(--mono);font-size:15px;cursor:pointer}
+.nudges button:active{background:var(--line)}
+.routetime{display:flex;align-items:center;gap:8px;padding:9px 12px 0;background:var(--panel);border-top:1px solid var(--line)}
+.routetime .k{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.routetime input{flex:1;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-family:var(--mono);font-size:13px;color-scheme:dark}
 .autonote{font-size:12px;color:var(--faint);letter-spacing:.04em;margin:-4px 0 10px;font-style:italic}
 .mapwrap{margin-top:12px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel)}
 .maprel{position:relative}
@@ -145,6 +152,7 @@ input[type=range]{width:100%;margin:14px 0 10px;accent-color:var(--amber);height
 .tchips{display:flex;justify-content:space-between;gap:6px;font-family:var(--mono);font-size:11px;color:var(--ink);flex-wrap:wrap}
 .tchips b{color:var(--amber);font-weight:500}
 .routerow{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--panel);border-top:1px solid var(--line)}
+.routerow select{flex:1;min-width:0;padding:9px 8px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-family:var(--cond);font-size:14px}
 .routerow button{padding:9px 12px;border-radius:8px;border:1px solid var(--jib);background:#12283d;color:var(--jib);font-family:var(--cond);font-size:14px;font-weight:600;letter-spacing:.06em;cursor:pointer}
 .routestat{font-size:12px;color:var(--faint);flex:1;line-height:1.3}
 .routesum{padding:10px 14px;background:var(--panel2);border-top:1px solid var(--line);font-size:14px;line-height:1.55;color:var(--dim)}
@@ -163,7 +171,8 @@ input[type=range]{width:100%;margin:14px 0 10px;accent-color:var(--amber);height
 .trkbtn{flex:0 0 auto;padding:9px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--dim);font-family:var(--cond);font-size:13px;font-weight:600;cursor:pointer}
 /* header right / night */
 .hdr-r{display:flex;align-items:flex-start;gap:10px}
-#nightBtn{width:38px;height:38px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--dim);font-size:18px;cursor:pointer}
+#nightBtn,#wakeBtn{width:38px;height:38px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--dim);font-size:18px;cursor:pointer}
+#wakeBtn.on{border-color:#3ecf74;color:#3ecf74}
 html.night{filter:sepia(.65) hue-rotate(-48deg) saturate(2.4) brightness(.82)}
 /* performance card */
 .perf{background:var(--panel);border:1px solid var(--line);border-radius:10px;margin-bottom:12px;overflow:hidden}
@@ -204,6 +213,7 @@ footer a{color:var(--dim)}
   <header>
     <div class="boat">Black <span>◆</span> Diamond</div>
     <div class="hdr-r">
+      <button id="wakeBtn" title="keep screen awake">⏾</button>
       <button id="nightBtn" title="night mode">☾</button>
       <div class="meta">Santa Cruz 37 · USA 60937<br>ORC VPP Targets</div>
     </div>
@@ -314,6 +324,12 @@ footer a{color:var(--dim)}
         <label><span class="k">Brg to Mark °T</span><input type="number" id="inBtw" inputmode="numeric" min="0" max="359" placeholder="—"></label>
         <label><span class="k">Dist NM</span><input type="number" id="inDtw" inputmode="decimal" min="0" step="0.1" placeholder="—"></label>
       </div>
+      <div class="nudges">
+        <span class="k">TWD</span>
+        <button data-twd="-5">−5</button><button data-twd="-1">−1</button><button data-twd="1">+1</button><button data-twd="5">+5</button>
+        <span class="k" style="margin-left:8px">TWS</span>
+        <button data-tws="-1">−1</button><button data-tws="1">+1</button>
+      </div>
       <div class="autonote" id="autoNote" style="display:none">Bearing &amp; distance computed from GPS + mark position</div>
       <div class="tackrow">
         <span class="k">Current board</span>
@@ -340,8 +356,19 @@ footer a{color:var(--dim)}
               <div class="tchips" id="tChips"></div>
             </div>
           </div>
+          <div class="routetime">
+            <span class="k">Start</span>
+            <input type="datetime-local" id="inStart">
+            <button class="trkbtn" id="btnStartNow">Now</button>
+          </div>
           <div class="routerow">
-            <button id="btnRoute">⟳ Fetch GFS &amp; optimize route</button>
+            <select id="selModel">
+              <option value="best_match" selected>Best match (auto hi-res)</option>
+              <option value="gfs_seamless">GFS</option>
+              <option value="ecmwf_ifs025">ECMWF</option>
+              <option value="gfs_hrrr">HRRR (≤48h, hi-res)</option>
+            </select>
+            <button id="btnRoute">⟳ Route</button>
             <span class="routestat" id="routeStat"></span>
           </div>
           <div class="routesum" id="routeSum" style="display:none"></div>
@@ -942,13 +969,26 @@ $('btnRoute').onclick=async()=>{
   const st=$('routeStat');
   if([bla,blo,mla,mlo].some(isNaN)){st.textContent='Need boat GPS + mark position first.';return;}
   if(typeof L==='undefined'||!map){st.textContent='Map not loaded yet.';return;}
-  st.textContent='Fetching GFS…';
-  try{await fetchWx(bla,blo,mla,mlo);}
-  catch(e){st.textContent='GFS fetch failed ('+e.message+'). Needs internet; use the hosted page, not the chat preview.';return;}
+  const mdl=$('selModel').value;
+  const MNAME={best_match:'Best match',gfs_seamless:'GFS',ecmwf_ifs025:'ECMWF',gfs_hrrr:'HRRR'};
+  st.textContent='Fetching '+MNAME[mdl]+'…';
+  try{wx=await fetchWxM(mdl,bla,blo,mla,mlo);}
+  catch(e){st.textContent=MNAME[mdl]+' fetch failed ('+e.message+'). Needs internet; use the hosted page, not the chat preview.';return;}
   st.textContent='Optimizing…';
   await new Promise(r=>setTimeout(r,30));
+  /* optional planned start time (pre-race planning); default = now */
+  let hStart=0;
+  const sv=$('inStart').value;
+  if(sv){
+    hStart=(new Date(sv).getTime()/1000-wx.t0)/3600;
+    if(hStart<0){st.textContent='Start time is in the past — using now instead.';hStart=0;}
+    else{
+      const hzn=(wx.times[wx.times.length-1]-wx.t0)/3600;
+      if(hStart>hzn-6){st.textContent='Start time is beyond this model\'s horizon (~'+Math.round(hzn)+'h) — pick something sooner or switch models.';return;}
+    }
+  }
   const legs=(typeof course!=='undefined'&&course.length)?course.slice(activeIdx):[{lat:mla,lon:mlo,name:'Mark'}];
-  route=[]; let px=bla, py=blo, h0=0, ok=true;
+  route=[]; let px=bla, py=blo, h0=hStart, ok=true;
   for(const wp of legs){
     const seg=optimize(px,py,wp.lat,wp.lon,h0);
     if(!seg||seg.length<2){ok=false;break;}
@@ -956,20 +996,36 @@ $('btnRoute').onclick=async()=>{
     px=wp.lat; py=wp.lon; h0=seg[seg.length-1].h;
   }
   if(!ok||route.length<2){st.textContent='No route found inside the 72-hr forecast window'+(legs.length>1?' (multi-leg course may exceed it)':'')+'.';return;}
-  /* ECMWF comparison (best-effort) */
-  fetchWxM('ecmwf_ifs025',bla,blo,legs[legs.length-1].lat,legs[legs.length-1].lon).then(W=>{
-    wxE=W; let ds=0,dd=0,n=0,mx=0,mxh=0;
-    route.forEach(p=>{const g=windAtW(wx,p.lat,p.lon,p.h),e=windAtW(wxE,p.lat,p.lon,p.h);
-      if(!g||!e)return;
-      const a=Math.abs(g.spd-e.spd),b=Math.abs(sd(g.dir,e.dir));
-      ds+=a;dd+=b;n++;if(a>mx){mx=a;mxh=p.h;}});
-    if(n)$('routeSum').innerHTML+='<span class="c0note"><b>ECMWF vs GFS along route:</b> avg ±'+(ds/n).toFixed(1)+' kt / ±'+Math.round(dd/n)+'°; biggest speed split '+mx.toFixed(1)+' kt around T+'+Math.round(mxh)+'h — '+(ds/n<1.5&&dd/n<15?'models agree, high confidence.':'models diverge, treat the route as one scenario.')+'</span>';
-  }).catch(()=>{});
-  st.textContent='GFS run '+new Date(wx.t0*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+' · ETA '+fmtTime(route[route.length-1].h*3600);
+  /* three-way model comparison along the routed track (best-effort) */
+  const others=['gfs_hrrr','gfs_seamless','ecmwf_ifs025'].filter(m=>m!==mdl);
+  Promise.allSettled(others.map(m=>fetchWxM(m,bla,blo,legs[legs.length-1].lat,legs[legs.length-1].lon))).then(res=>{
+    let lines=[], worst=0;
+    res.forEach((r,i)=>{
+      if(r.status!=='fulfilled')return;
+      const W=r.value, hzn=(W.times[W.times.length-1]-W.t0)/3600;
+      let ds=0,dd=0,n=0,mx=0,mxh=0;
+      route.forEach(p=>{
+        if(p.h>hzn-0.5)return;
+        const g=windAtW(wx,p.lat,p.lon,p.h),e=windAtW(W,p.lat,p.lon,p.h);
+        if(!g||!e)return;
+        const a=Math.abs(g.spd-e.spd),b=Math.abs(sd(g.dir,e.dir));
+        ds+=a;dd+=b;n++;if(a>mx){mx=a;mxh=p.h;}});
+      if(!n)return;
+      worst=Math.max(worst,ds/n);
+      lines.push('<b>'+MNAME[others[i]]+':</b> ±'+(ds/n).toFixed(1)+' kt / ±'+Math.round(dd/n)+'°'
+        +(hzn<route[route.length-1].h?' (first '+Math.round(hzn)+'h)':'')
+        +', max '+mx.toFixed(1)+' kt @ T+'+Math.round(mxh)+'h');
+    });
+    if(lines.length)$('routeSum').innerHTML+='<span class="c0note"><b>Model agreement vs '+MNAME[mdl]+':</b><br>'
+      +lines.join('<br>')+'<br>'
+      +(worst<1.5?'Models converge — commit to the plan.':'Models diverge — treat this route as one scenario and keep options open.')+'</span>';
+  });
+  st.textContent=MNAME[mdl]+' · fetched '+new Date(wx.t0*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+' · ETA '+fmtTime((route[route.length-1].h-route[0].h)*3600);
   drawRoute(); buildSummary();
   $('tBar').style.display='block';
+  $('tSlider').min=Math.floor(route[0].h*2)/2;
   $('tSlider').max=Math.ceil(route[route.length-1].h*2)/2;
-  $('tSlider').value=0; renderT(0);
+  $('tSlider').value=route[0].h; renderT(route[0].h);
 };
 $('tSlider').addEventListener('input',e=>renderT(parseFloat(e.target.value)));
 
@@ -1210,10 +1266,17 @@ async function fetchWxM(models,bla,blo,mla,mlo){
   const res=await fetch(url);
   if(!res.ok)throw new Error(models+' '+res.status);
   let js=await res.json(); if(!Array.isArray(js))js=[js];
-  const times=js[0].hourly.time, r=Math.PI/180, u=[],v=[];
-  js.forEach(pt=>{const s=pt.hourly.wind_speed_10m, d=pt.hourly.wind_direction_10m;
+  let times=js[0].hourly.time;
+  /* find common valid horizon (hi-res models return nulls past their range) */
+  let L=times.length;
+  js.forEach(pt=>{const s=pt.hourly.wind_speed_10m;
+    for(let i=0;i<s.length;i++){if(s[i]==null||isNaN(s[i])){L=Math.min(L,i);break;}}});
+  if(L<8)throw new Error('model horizon too short here');
+  times=times.slice(0,L);
+  const r=Math.PI/180, u=[],v=[];
+  js.forEach(pt=>{const s=pt.hourly.wind_speed_10m.slice(0,L), d=pt.hourly.wind_direction_10m.slice(0,L);
     u.push(s.map((sp,i)=>-sp*Math.sin(d[i]*r)));v.push(s.map((sp,i)=>-sp*Math.cos(d[i]*r)));});
-  return {lats,lons,NLA,NLO,times,u,v,t0:Date.now()/1000};
+  return {lats,lons,NLA,NLO,times,u,v,t0:Date.now()/1000,model:models};
 }
 fetchWx=async(bla,blo,mla,mlo)=>{wx=await fetchWxM('gfs_seamless',bla,blo,mla,mlo);};
 
@@ -1423,6 +1486,33 @@ $('btnGpx').onclick=()=>{
   a.download='black-diamond-track.gpx';a.click();
   $('gpsStat').textContent='GPX exported ('+track.length+' points, '+trackNm().toFixed(1)+' nm).';
 };
+
+/* ================= WAKE LOCK ================= */
+let wakeLock=null;
+async function acquireWake(){try{wakeLock=await navigator.wakeLock.request('screen');$('wakeBtn').className='on';}catch(e){wakeLock=null;$('wakeBtn').className='';$('gpsStat').textContent='Screen wake lock unavailable (needs iOS 16.4+ / HTTPS).';}}
+$('wakeBtn').onclick=async()=>{
+  if(wakeLock){try{await wakeLock.release();}catch(e){} wakeLock=null;$('wakeBtn').className='';return;}
+  if(!('wakeLock' in navigator)){$('gpsStat').textContent='Wake lock not supported on this browser.';return;}
+  acquireWake();
+};
+document.addEventListener('visibilitychange',()=>{if(wakeLock!==null&&document.visibilityState==='visible')acquireWake();});
+
+/* ================= TWD/TWS NUDGES ================= */
+document.querySelectorAll('.nudges button').forEach(b=>{
+  b.onclick=()=>{
+    if(b.dataset.twd){
+      const cur=parseFloat($('inTwd').value);
+      const v=((isNaN(cur)?0:cur)+parseInt(b.dataset.twd)+360)%360;
+      $('inTwd').value=Math.round(v);
+      if(typeof logWind==='function')logWind();
+      wpRender();
+    }else if(b.dataset.tws){
+      tws=Math.max(6,Math.min(20,tws+parseInt(b.dataset.tws)));
+      $('twsSlider').value=tws;render();
+    }
+  };
+});
+$('btnStartNow').onclick=()=>{$('inStart').value='';$('routeStat').textContent='Start = now (current position & time).';};
 
 /* ================= SERVICE WORKER (offline) ================= */
 if('serviceWorker' in navigator){try{navigator.serviceWorker.register('sw.js');}catch(e){}}
