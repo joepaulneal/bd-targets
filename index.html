@@ -1102,7 +1102,10 @@ async function runRoute(refetch){
       +lines.join('<br>')+'<br>'
       +(worst<1.5?'Models converge — commit to the plan.':'Models diverge — treat this route as one scenario and keep options open.')+'</span>';
   });
-  st.textContent=MNAME[mdl]+' · fetched '+new Date(wx.t0*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+' · ETA '+fmtTime((route[route.length-1].h-route[0].h)*3600);
+  /* final safety pass: verify the whole track against the water mask */
+  let dirtySegs=0;
+  for(let i=1;i<route.length;i++)if(segBlocked(route[i-1].lat,route[i-1].lon,route[i].lat,route[i].lon))dirtySegs++;
+  st.textContent=MNAME[mdl]+' · fetched '+new Date(wx.t0*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+' · ETA '+fmtTime((route[route.length-1].h-route[0].h)*3600)+(dirtySegs?' · ⚠ '+dirtySegs+' segment(s) near shore — eyeball the track!':'');
   drawRoute(); buildSummary();
   $('tBar').style.display='block';
   $('tSlider').min=Math.floor(route[0].h*2)/2;
@@ -1665,7 +1668,54 @@ async function ensureBathy(){
   })();
   try{await bathyLoading;}finally{bathyLoading=null;}
 }
+
+/* ================= EASTERN SHORELINE HARD STANDOFF =================
+   Dense trace of the Michigan (east) shore, Indiana line -> Waugoshance.
+   Blocks all cells within 1.2 nm of the trace, independent of bathymetry,
+   except inside charted-channel corridors. Vertices err seaward. */
+const EAST_SHORE=[
+ [41.72,-86.92],[41.80,-86.76],[41.95,-86.60],[42.11,-86.50],[42.30,-86.36],[42.40,-86.30],
+ [42.55,-86.24],[42.66,-86.23],[42.77,-86.23],[42.90,-86.24],[43.06,-86.26],[43.22,-86.35],
+ [43.38,-86.44],[43.52,-86.49],[43.65,-86.56],[43.78,-86.45],[43.87,-86.45],[43.955,-86.46],
+ [44.02,-86.51],[44.06,-86.53],[44.11,-86.46],[44.18,-86.40],[44.25,-86.36],[44.31,-86.30],
+ [44.37,-86.28],[44.49,-86.25],[44.56,-86.25],[44.63,-86.27],[44.69,-86.27],[44.72,-86.20],
+ [44.74,-86.12],[44.78,-86.08],[44.81,-86.08],[44.86,-86.07],[44.91,-86.05],[44.92,-85.99],
+ [44.94,-85.93],[44.98,-85.94],[45.02,-85.95],[45.03,-85.87],[45.02,-85.78],[45.08,-85.70],
+ [45.14,-85.65],[45.19,-85.62],[45.22,-85.56],
+ [45.13,-85.29],[45.22,-85.27],[45.32,-85.27],[45.38,-85.14],[45.42,-85.08],[45.48,-85.06],
+ [45.56,-85.06],[45.64,-85.06],[45.71,-85.03],[45.755,-85.00]
+];
+let shoreSet=null;
+const SG={la0:41.4,lo0:-88.4,dLa:0.015,dLo:0.02};
+function buildShoreSet(){
+  if(shoreSet)return;
+  shoreSet=new Set();
+  const csegs=[];CORRIDORS.forEach(c=>{for(let i=0;i<c.length-1;i++)csegs.push([c[i],c[i+1]]);});
+  const R=1.2; // nm standoff
+  for(let s=0;s<EAST_SHORE.length-1;s++){
+    const a=EAST_SHORE[s], b=EAST_SHORE[s+1];
+    const d=brgDist(a[0],a[1],b[0],b[1]), n=Math.max(1,Math.ceil(d.dist/0.4));
+    for(let i=0;i<=n;i++){
+      const la=a[0]+(b[0]-a[0])*i/n, lo=a[1]+(b[1]-a[1])*i/n;
+      const r0=Math.round((la-SG.la0)/SG.dLa), c0=Math.round((lo-SG.lo0)/SG.dLo);
+      for(let dr=-2;dr<=2;dr++)for(let dc=-3;dc<=3;dc++){
+        const cla=SG.la0+(r0+dr)*SG.dLa, clo=SG.lo0+(c0+dc)*SG.dLo;
+        const kx=111.32*Math.cos(cla*Math.PI/180);
+        if(segDistNm(cla,clo,a,b,kx)>R)continue;
+        let inCor=false;
+        for(const cs of csegs){if(segDistNm(cla,clo,cs[0],cs[1],kx)<0.9){inCor=true;break;}}
+        if(!inCor)shoreSet.add((r0+dr)+','+(c0+dc));
+      }
+    }
+  }
+}
+function shoreBlocked(la,lo){
+  if(!shoreSet)buildShoreSet();
+  return shoreSet.has(Math.round((la-SG.la0)/SG.dLa)+','+Math.round((lo-SG.lo0)/SG.dLo));
+}
+
 function blockedAt(la,lo){
+  if(shoreBlocked(la,lo))return true;   // east-shore hard standoff (works even without bathy)
   if(!bathy)return false;                 // no depth data loaded: no filtering (UI warns)
   const r=Math.round((la-bathy.la0)/bathy.dLa), c=Math.round((lo-bathy.lo0)/bathy.dLo);
   if(r<0||c<0||r>=bathy.NR||c>=bathy.NC)return true;
