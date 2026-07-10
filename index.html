@@ -302,6 +302,7 @@ footer a{color:var(--dim)}
       <div class="gpsstat" id="gpsStat"></div>
       <div class="markrow">
         <span class="k">Mark</span>
+        <button class="trkbtn" id="btnMac" style="border-color:var(--amber);color:var(--amber)">⚑ Mac course</button>
         <select id="selMark">
           <option value="">Manual entry</option>
           <option value="44.6917,-86.2556">Point Betsie (approx)</option>
@@ -372,6 +373,18 @@ footer a{color:var(--dim)}
             <span class="routestat" id="routeStat"></span>
           </div>
           <div class="routesum" id="routeSum" style="display:none"></div>
+          <div class="routerow">
+            <input type="text" id="inYbRace" placeholder="YB race key (e.g. chimac2026)" style="flex:1;min-width:0;padding:9px 8px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-family:var(--mono);font-size:13px">
+            <button class="trkbtn" id="btnYb" style="border-color:#c792ff;color:#c792ff">⛵ Fleet</button>
+            <button class="trkbtn" id="btnYbAuto">⟳ 5m</button>
+          </div>
+          <div class="routerow" id="ybFilterRow" style="display:none">
+            <select id="ybClass" style="flex:1;min-width:0;padding:9px 8px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-family:var(--cond);font-size:14px">
+              <option value="">All fleet</option>
+            </select>
+            <input type="text" id="ybText" placeholder="name filter" style="flex:1;min-width:0;padding:9px 8px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-family:var(--mono);font-size:13px">
+          </div>
+          <div class="routesum" id="ybStat" style="display:none"></div>
           <div class="maplegend">
             <span><i style="background:#2fbf5f"></i>stbd layline</span>
             <span><i style="background:#ff5a5f"></i>port layline</span>
@@ -380,7 +393,7 @@ footer a{color:var(--dim)}
             <span><i style="background:#ff6b66"></i>A2</span>
             <span><i style="background:#ffbe5c"></i>layline route</span>
           </div>
-          <div class="mapnote">OpenSeaMap / NOAA — strategy aid only, not for navigation. Router ignores land, shoals &amp; current: sanity-check it.</div>
+          <div class="mapnote">OpenSeaMap / NOAA — strategy aid only, not for navigation. Router holds ≥2 nm off land/islands/shoals (approx geometry) with charted-channel corridors; ignores current. Verify gates vs chart &amp; SIs.</div>
         </div>
       </div>
     </div>
@@ -506,9 +519,10 @@ function setMode(m){mode=m;
 $('tabUp').onclick=()=>setMode('up');
 $('tabDn').onclick=()=>setMode('dn');
 $('tabCu').onclick=()=>setMode('cu');
-$('twsSlider').oninput=e=>{tws=+e.target.value;render();};
-$('twsUp').onclick=()=>{tws=Math.min(20,tws+0.5);$('twsSlider').value=tws;render();};
-$('twsDown').onclick=()=>{tws=Math.max(6,tws-0.5);$('twsSlider').value=tws;render();};
+var twsTouched=false;
+$('twsSlider').oninput=e=>{twsTouched=true;tws=+e.target.value;render();};
+$('twsUp').onclick=()=>{twsTouched=true;tws=Math.min(20,tws+0.5);$('twsSlider').value=tws;render();};
+$('twsDown').onclick=()=>{twsTouched=true;tws=Math.max(6,tws-0.5);$('twsSlider').value=tws;render();};
 $('twaSlider').oninput=e=>{twa=+e.target.value;render();};
 
 function render(){
@@ -752,6 +766,12 @@ function ensureMap(){
   lyr=L.layerGroup().addTo(map);
   wxLyr=L.layerGroup().addTo(map);
   routeLyr=L.layerGroup().addTo(map);
+  if(typeof LAND!=='undefined'){
+    const nogo=L.layerGroup().addTo(map);
+    LAND.shoals.forEach(p=>L.polygon(p,{color:'#ff8c42',weight:1.5,fillColor:'#ff8c42',fillOpacity:.18,dashArray:'4 4'}).addTo(nogo).bindTooltip('No-go: shoal (approx)'));
+    LAND.islands.forEach(p=>L.polygon(p,{color:'#ff8c42',weight:1,fillOpacity:0,dashArray:'4 4'}).addTo(nogo));
+    CORRIDORS.forEach(c=>L.polyline(c,{color:'#3ecf74',weight:1.5,dashArray:'2 8',opacity:.6}).addTo(nogo).bindTooltip('Charted channel corridor'));
+  }
 }
 /* fullscreen (CSS-based — works on iPhone where the Fullscreen API doesn't) */
 let fsOn=false;
@@ -921,6 +941,7 @@ let route=null;
 function optimize(bla,blo,mla,mlo,h0){
   h0=h0||0;
   const DT=1, MAXH=66, offs=[-80,-65,-52,-40,-30,-22,-15,-9,-4,0,4,9,15,22,30,40,52,65,80];
+  buildMask(Math.min(bla,mla),Math.max(bla,mla),Math.min(blo,mlo),Math.max(blo,mlo));
   let nodes=[{lat:bla,lon:blo,h:h0,parent:null}], best=null;
   const axis=brgDist(bla,blo,mla,mlo).brg;
   for(let step=0;step<MAXH;step++){
@@ -929,7 +950,7 @@ function optimize(bla,blo,mla,mlo,h0){
       const w=windAt(n.lat,n.lon,n.h); if(!w||w.spd<0.5)continue;
       const bm=brgDist(n.lat,n.lon,mla,mlo);
       const twaF=Math.abs(sd(w.dir,bm.brg)), sF=bestSail(twaF,w.spd);
-      if(sF&&bm.dist<=sF.bsp*DT*1.05){
+      if(sF&&bm.dist<=sF.bsp*DT*1.05&&!segBlocked(n.lat,n.lon,mla,mlo,bla,blo)){
         const tf=n.h+bm.dist/sF.bsp;
         if(!best||tf<best.h)best={lat:mla,lon:mlo,h:tf,parent:n,hdg:Math.round(bm.brg),sail:sF.sail,bsp:sF.bsp,tws:w.spd,twd:w.dir,twa:twaF};
         continue;
@@ -941,6 +962,8 @@ function optimize(bla,blo,mla,mlo,h0){
         if(twa<beatA-1)continue;
         const ss=bestSail(twa,w.spd); if(!ss)continue;
         const p=dest(n.lat,n.lon,hdg,ss.bsp*DT);
+        if(blockedAt(p.lat,p.lon))continue;
+        if(segBlocked(n.lat,n.lon,p.lat,p.lon,bla,blo))continue;
         next.push({lat:p.lat,lon:p.lon,h:n.h+DT,parent:n,hdg,sail:ss.sail,bsp:ss.bsp,tws:w.spd,twd:w.dir,twa});
       }
     }
@@ -1321,6 +1344,7 @@ function onFix(p){
     if(cog==null&&bd.dist>0.003)cog=bd.brg;
   }
   lastFix={la,lo,t};
+  if(typeof autoWind==='function')autoWind();
   renderPerf(sog,cog,la,lo);
   renderSun(la,lo);
 }
@@ -1507,12 +1531,280 @@ document.querySelectorAll('.nudges button').forEach(b=>{
       if(typeof logWind==='function')logWind();
       wpRender();
     }else if(b.dataset.tws){
+      twsTouched=true;
       tws=Math.max(6,Math.min(20,tws+parseInt(b.dataset.tws)));
       $('twsSlider').value=tws;render();
     }
   };
 });
 $('btnStartNow').onclick=()=>{$('inStart').value='';$('routeStat').textContent='Start = now (current position & time).';};
+
+
+/* ================= LAND AVOIDANCE (no-go mask, 2 nm offshore) =================
+   Approximate coastline + island + shoal geometry with a 2 nm buffer.
+   Charted channels (Manitou Passage, Grays Reef, Straits) are open corridors
+   forced via the course gate waypoints. NOT survey data — verify vs chart. */
+const LAND={
+ shore:[[41.85,-87.62],[42.05,-87.68],[42.36,-87.82],[42.58,-87.81],[42.73,-87.78],[43.04,-87.87],[43.39,-87.86],[43.75,-87.70],[44.09,-87.65],[44.15,-87.56],[44.46,-87.49],[44.61,-87.43],[44.79,-87.31],[45.06,-87.12],[45.29,-87.03],[45.38,-86.90],[45.42,-86.83],[45.57,-86.55],[45.95,-86.25],[45.92,-85.91],[46.05,-85.60],[46.10,-85.45],[45.99,-85.05],[45.85,-84.87],[45.855,-84.725],[45.875,-84.60],[45.885,-84.50],[45.74,-84.50],[45.777,-84.72],[45.76,-85.00],[45.71,-85.03],[45.64,-85.05],[45.43,-85.02],[45.37,-84.96],[45.32,-85.26],[45.10,-85.37],[44.80,-85.53],[45.02,-85.50],[45.21,-85.55],[45.10,-85.64],[45.02,-85.76],[44.95,-85.87],[44.90,-86.03],[44.91,-86.06],[44.81,-86.07],[44.69,-86.26],[44.63,-86.25],[44.25,-86.35],[43.95,-86.46],[43.65,-86.54],[43.23,-86.34],[43.06,-86.25],[42.77,-86.21],[42.40,-86.29],[42.11,-86.49],[41.72,-86.91],[41.62,-87.26],[41.73,-87.53]],
+ islands:[
+  [[45.75,-85.53],[45.73,-85.62],[45.62,-85.60],[45.58,-85.51],[45.65,-85.47],[45.73,-85.48]],      // Beaver
+  [[45.81,-85.53],[45.77,-85.56],[45.76,-85.49],[45.80,-85.47]],                                     // Garden
+  [[45.79,-85.40],[45.76,-85.42],[45.75,-85.35],[45.78,-85.33]],                                     // Hog
+  [[45.75,-85.68],[45.72,-85.71],[45.71,-85.65],[45.74,-85.63]],                                     // High
+  [[45.44,-85.82],[45.40,-85.85],[45.39,-85.79],[45.43,-85.77]],                                     // S Fox
+  [[45.50,-85.79],[45.47,-85.81],[45.47,-85.76],[45.50,-85.75]],                                     // N Fox
+  [[45.13,-86.06],[45.05,-86.08],[45.00,-86.02],[45.03,-85.96],[45.11,-85.98]],                      // N Manitou
+  [[45.04,-86.13],[44.99,-86.15],[44.99,-86.08],[45.03,-86.07]]                                      // S Manitou
+ ],
+ shoals:[
+  [[45.69,-85.28],[45.78,-85.20],[45.79,-85.155],[45.70,-85.19]],                                    // Grays Reef shoal (W of channel)
+  [[45.70,-85.12],[45.80,-85.10],[45.84,-85.00],[45.78,-84.96],[45.70,-85.00]],                      // Vienna/Simmons/Waugoshance (E of channel)
+  [[45.83,-85.20],[45.87,-85.10],[45.84,-85.05],[45.80,-85.14]]                                      // White Shoal area
+ ]
+};
+/* open corridors — charted channels; the mask never blocks near these lines */
+const CORRIDORS=[
+ [[41.878,-87.590],[41.9688,-87.6175],[42.06,-87.58]],                            // Chicago start area + M1 Skyline
+ [[44.90,-86.09],[45.00,-86.00],[45.09,-85.93],[45.20,-85.70],[45.28,-85.60]],   // Manitou Passage
+ [[45.68,-85.16],[45.74,-85.148],[45.764,-85.1477],[45.8155,-85.137],[45.82,-85.05]],  // Grays Reef gate + CAN 3
+ [[45.82,-85.05],[45.81,-84.95],[45.80,-84.90],[45.8185,-84.7265],[45.8225,-84.706],[45.836,-84.65],[45.845,-84.617]] // GR exit / Straits / bridge spans / 2A / finish
+];
+let mask=null;
+function segDistNm(la,lo,a,b,kx){ // point to segment, flat projection
+  const px=lo*kx, py=la*110.57, ax=a[1]*kx, ay=a[0]*110.57, bx=b[1]*kx, by=b[0]*110.57;
+  const dx=bx-ax, dy=by-ay, L2=dx*dx+dy*dy;
+  let t=L2?((px-ax)*dx+(py-ay)*dy)/L2:0; t=Math.max(0,Math.min(1,t));
+  return Math.hypot(px-(ax+dx*t), py-(ay+dy*t))/1.852;
+}
+function buildMask(la0,la1,lo0,lo1){
+  la0-=0.5;la1+=0.5;lo0-=0.6;lo1+=0.6;
+  let dLa=0.018, kx0=111.32*Math.cos((la0+la1)/2*Math.PI/180), dLo=0.018*110.57/kx0;
+  let NR=Math.ceil((la1-la0)/dLa), NC=Math.ceil((lo1-lo0)/dLo);
+  if(NR*NC>150000){const s=Math.sqrt(NR*NC/150000);dLa*=s;dLo*=s;NR=Math.ceil((la1-la0)/dLa);NC=Math.ceil((lo1-lo0)/dLo);}
+  const shoreSegs=[],segs=[];
+  const addPoly=(arr,p,closed)=>{for(let i=0;i<p.length-(closed?0:1);i++)arr.push([p[i],p[(i+1)%p.length]]);};
+  addPoly(shoreSegs,LAND.shore,true);
+  LAND.islands.forEach(p=>addPoly(shoreSegs,p,true));      // hard land edges
+  segs.push(...shoreSegs);
+  LAND.shoals.forEach(p=>addPoly(segs,p,true));            // shoals: soft (corridor may cross)
+  const csegs=[]; CORRIDORS.forEach(c=>{for(let i=0;i<c.length-1;i++)csegs.push([c[i],c[i+1]]);});
+  const hardPolys=LAND.islands, softPolys=LAND.shoals;
+  const inPoly=(la,lo,p)=>{let w=false;
+    for(let i=0,j=p.length-1;i<p.length;j=i++){
+      if((p[i][1]>lo)!==(p[j][1]>lo)&&la<(p[j][0]-p[i][0])*(lo-p[i][1])/(p[j][1]-p[i][1])+p[i][0])w=!w;}
+    return w;};
+  const m=new Uint8Array(NR*NC);
+  for(let r=0;r<NR;r++)for(let c=0;c<NC;c++){
+    const la=la0+r*dLa, lo=lo0+c*dLo, kx=111.32*Math.cos(la*Math.PI/180);
+    /* HARD LAND (islands + shoreline) — corridors can never open these */
+    let hard=false;
+    for(const p of hardPolys){if(inPoly(la,lo,p)){hard=true;break;}}
+    if(!hard)for(const s of shoreSegs){if(segDistNm(la,lo,s[0],s[1],kx)<0.5){hard=true;break;}}
+    if(hard){m[r*NC+c]=1;continue;}
+    /* corridors: charted channels stay open through buffers and shoal zones */
+    let inCor=false;
+    for(const s of csegs){if(segDistNm(la,lo,s[0],s[1],kx)<1.4){inCor=true;break;}}
+    if(inCor)continue;
+    /* SOFT no-go: shoal interiors + 2 nm offshore buffer */
+    let soft=false;
+    for(const p of softPolys){if(inPoly(la,lo,p)){soft=true;break;}}
+    if(!soft)for(const s of segs){if(segDistNm(la,lo,s[0],s[1],kx)<2.0){soft=true;break;}}
+    if(soft)m[r*NC+c]=1;
+  }
+  mask={m,la0,lo0,dLa,dLo,NR,NC};
+}
+function blockedAt(la,lo){
+  if(!mask)return false;
+  const r=Math.round((la-mask.la0)/mask.dLa), c=Math.round((lo-mask.lo0)/mask.dLo);
+  if(r<0||c<0||r>=mask.NR||c>=mask.NC)return true;   // outside the masked area = unknown = blocked
+  return mask.m[r*mask.NC+c]===1;
+}
+function segBlocked(la1,lo1,la2,lo2,gla,glo){
+  const d=brgDist(la1,lo1,la2,lo2), n=Math.max(2,Math.ceil(d.dist/0.8));
+  for(let i=1;i<=n;i++){
+    const f=i/n, sla=la1+(la2-la1)*f, slo=lo1+(lo2-lo1)*f;
+    if(!blockedAt(sla,slo))continue;
+    /* grace: a blocked sample is forgiven only if it's right at the leg start (harbor / gate buffer) */
+    if(gla!==undefined&&brgDist(gla,glo,sla,slo).dist<1.5)continue;
+    return true;
+  }
+  return false;
+}
+
+/* ---- 2026 Mac course — required marks from SI Appendix B4.1 (WGS84),
+        plus Manitou Passage strategy gates (optional routing, not marks) ---- */
+const MAC_COURSE=[
+ {lat:41.96883,lon:-87.61750,name:'M1 Skyline (stbd) [SI]'},
+ {lat:44.945,lon:-86.075,name:'Manitou Pass S (strategy)'},
+ {lat:45.060,lon:-85.950,name:'Manitou Pass mid (strategy)'},
+ {lat:45.270,lon:-85.610,name:'Off GT Light (strategy)'},
+ {lat:45.76400,lon:-85.14766,name:'M2 Grays Reef gate [SI]'},
+ {lat:45.8155,lon:-85.1370,name:'M3 CAN 3 (stbd) [SI]'},
+ {lat:45.8185,lon:-84.7265,name:'M4 Bridge center spans [SI]'},
+ {lat:45.8225,lon:-84.7060,name:'M5 S Graham Shoal 2A (port) [SI]'},
+ {lat:45.845,lon:-84.617,name:'Finish (SI B6)'}
+];
+$('btnMac').onclick=()=>{
+  course=MAC_COURSE.map(w=>({...w})); activeIdx=0; saveCourse(); renderCourse(); wpRender();
+  $('gpsStat').textContent='2026 Mac course loaded: SI marks + Manitou strategy gates. SI alternative: pass W of Beaver instead of the GR gate.';
+};
+
+
+/* ================= YB TRACKING FLEET OVERLAY ================= */
+let fleetLyr=null, ybNames={}, ybTimer=null, ybLast={};
+$('inYbRace').value=storeGet('bdYbRace')||'chimac2026';
+async function ybFetch(url){
+  try{const r=await fetch(url);if(r.ok)return await r.text();throw 0;}
+  catch(e){ /* CORS fallback via public proxy */
+    const r=await fetch('https://api.allorigins.win/raw?url='+encodeURIComponent(url));
+    if(!r.ok)throw new Error('fetch blocked');
+    return await r.text();
+  }
+}
+function ybParseIds(txt){
+  const m={};
+  txt.split(/\r?\n/).forEach(l=>{
+    const i=l.indexOf(',');
+    if(i>0)m[l.slice(0,i).trim()]=l.slice(i+1).trim();
+  });
+  return m;
+}
+function ybParsePositions(txt){
+  /* tolerant: per line find a plausible lat, lon pair; first token = boat id/name */
+  const out={};
+  txt.split(/\r?\n/).forEach(l=>{
+    const t=l.split(/[,\t;]+/).map(s=>s.trim()).filter(Boolean);
+    if(t.length<3)return;
+    let lat=null,lon=null;
+    for(let i=1;i<t.length;i++){
+      const v=parseFloat(t[i]);
+      if(isNaN(v))continue;
+      if(lat===null&&v>40&&v<47)lat=v;
+      else if(lat!==null&&lon===null&&v>-93&&v<-82)lon=v;
+    }
+    if(lat===null||lon===null)return;
+    const id=t[0], ts=t.find(s=>/\d{1,2}:\d{2}/.test(s)||/^\d{10,}$/.test(s))||'';
+    if(!out[id])out[id]=[];
+    out[id].push({lat,lon,ts});
+  });
+  return out;
+}
+let ybTeamTags={}, ybTagsLoaded=false;
+const nrm=s=>String(s).toLowerCase().replace(/[^a-z0-9]/g,'');
+async function ybLoadSetup(race){
+  /* RaceSetup JSON carries teams + class/section tags */
+  try{
+    const js=JSON.parse(await ybFetch('https://cf.yb.tl/JSON/'+race+'/RaceSetup'));
+    const tagName={}; (js.tags||[]).forEach(t=>tagName[t.id]=t.name||String(t.id));
+    ybTeamTags={};
+    (js.teams||[]).forEach(t=>{
+      const tags=(t.tags||[]).map(id=>tagName[id]||String(id));
+      ybTeamTags[nrm(t.name)]=tags;
+    });
+    const sel=$('ybClass'), saved=storeGet('bdYbClass');
+    const all=[...new Set(Object.values(ybTeamTags).flat())].sort();
+    sel.innerHTML='<option value="">All fleet</option>'+all.map(t=>'<option'+((saved?t===saved:/\b4\b/.test(t))?' selected':'')+'>'+t+'</option>').join('');
+    $('ybFilterRow').style.display='flex';
+    ybTagsLoaded=true;
+  }catch(e){ /* no RaceSetup: name filter still works */
+    $('ybFilterRow').style.display='flex';
+    $('ybClass').style.display='none';
+  }
+}
+$('ybClass')&&($('ybClass').onchange=()=>{storeSet('bdYbClass',$('ybClass').value);ybLoad();});
+$('ybText')&&($('ybText').addEventListener('change',ybLoad));
+async function ybLoad(){
+  const race=$('inYbRace').value.trim();
+  if(!race){return;}
+  storeSet('bdYbRace',race);
+  const st=$('ybStat'); st.style.display='block'; st.textContent='Fetching YB fleet…';
+  if(!map){st.textContent='Open the map first (set positions or load the Mac course).';return;}
+  try{
+    try{ybNames=ybParseIds(await ybFetch('https://yb.tl/'+race+'-boatids.txt'));}catch(e){}
+    if(!ybTagsLoaded)await ybLoadSetup(race);
+    const pos=ybParsePositions(await ybFetch('https://yb.tl/'+race+'-expedition.txt'));
+    const n=Object.keys(pos).length;
+    if(!n)throw new Error('no positions parsed — race key wrong or feed not live yet');
+    if(!fleetLyr)fleetLyr=L.layerGroup().addTo(map);
+    fleetLyr.clearLayers();
+    const cls=$('ybClass')?$('ybClass').value:'', txt=($('ybText')?$('ybText').value:'').toLowerCase();
+    let shown=0;
+    Object.entries(pos).forEach(([id,list])=>{
+      const p=list[list.length-1];
+      const name=ybNames[id]||id;
+      const isBD=/black\s*diamond/i.test(name);
+      if(!isBD){ /* Black Diamond always shows */
+        if(cls){const tags=ybTeamTags[nrm(name)];if(!tags||!tags.includes(cls))return;}
+        if(txt&&!name.toLowerCase().includes(txt))return;
+      }
+      shown++;
+      /* SOG/COG from previous fix if the feed carries history */
+      let meta='';
+      const prev=(ybLast[id]&&ybLast[id].lat!==p.lat)?ybLast[id]:(list.length>1?list[list.length-2]:null);
+      if(prev){
+        const bd=brgDist(prev.lat,prev.lon,p.lat,p.lon);
+        if(prev.t&&Date.now()-prev.t>60000){
+          const sog=bd.dist/((Date.now()-prev.t)/3600000);
+          if(sog<30)meta='<br>SOG ~'+sog.toFixed(1)+' kt · COG '+String(Math.round(bd.brg)).padStart(3,'0')+'°';
+        }else if(bd.dist>0.01)meta='<br>COG '+String(Math.round(bd.brg)).padStart(3,'0')+'° (from last fix)';
+      }
+      ybLast[id]={lat:p.lat,lon:p.lon,t:Date.now()};
+      const ic=L.divIcon({className:'',iconSize:[12,12],iconAnchor:[6,6],
+        html:'<div style="width:10px;height:10px;border-radius:50%;background:'+(isBD?'#ffbe5c':'#c792ff')+';border:2px solid #0a1118;'+(isBD?'box-shadow:0 0 0 2px #ffbe5c':'')+'"></div>'});
+      L.marker([p.lat,p.lon],{icon:ic}).addTo(fleetLyr)
+        .bindTooltip('<b>'+name+'</b><br>'+p.lat.toFixed(4)+', '+p.lon.toFixed(4)+(p.ts?'<br>'+p.ts:'')+meta,{direction:'top'});
+    });
+    st.innerHTML='<b>YB fleet:</b> '+shown+' of '+n+' boats plotted'+(cls?' — '+cls:'')+' ('+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+'). Tap a dot for details. Purple = fleet, amber ring = Black Diamond.';
+  }catch(e){
+    st.innerHTML='YB fetch failed: '+e.message+'. Check the race key (it\'s the last part of the tracker URL, yb.tl/<b>xxxx</b>). Feed appears once the tracker is live; needs internet.';
+  }
+}
+$('btnYb').onclick=ybLoad;
+$('btnYbAuto').onclick=()=>{
+  if(ybTimer){clearInterval(ybTimer);ybTimer=null;$('btnYbAuto').style.color='';$('btnYbAuto').style.borderColor='';return;}
+  ybLoad(); ybTimer=setInterval(ybLoad,300000);
+  $('btnYbAuto').style.color='#3ecf74';$('btnYbAuto').style.borderColor='#3ecf74';
+};
+
+/* ================= AUTO WIND DEFAULT (best_match now at boat position) ================= */
+let autoWindTried=false;
+async function autoWind(){
+  if(autoWindTried)return;
+  const la=parseFloat($('inLat').value), lo=parseFloat($('inLon').value);
+  if(isNaN(la)||isNaN(lo))return;
+  const needTwd=!$('inTwd').value, needTws=!twsTouched;
+  if(!needTwd&&!needTws)return;
+  autoWindTried=true;
+  try{
+    const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude='+la.toFixed(3)+'&longitude='+lo.toFixed(3)
+      +'&current=wind_speed_10m,wind_direction_10m&wind_speed_unit=kn&models=best_match');
+    if(!r.ok)return;
+    const js=await r.json(), c=js.current;
+    if(!c)return;
+    let applied=[];
+    if(needTwd&&!$('inTwd').value){$('inTwd').value=Math.round(c.wind_direction_10m);applied.push('TWD '+Math.round(c.wind_direction_10m)+'°');}
+    if(needTws&&!twsTouched){tws=Math.max(6,Math.min(20,Math.round(c.wind_speed_10m*2)/2));$('twsSlider').value=tws;applied.push('TWS '+tws.toFixed(1)+' kt');}
+    if(applied.length){
+      $('gpsStat').textContent='Wind defaulted from forecast (best match, now): '+applied.join(', ')+'. Override with instrument readings.';
+      if(typeof logWind==='function')logWind();
+      render();
+    }
+  }catch(e){autoWindTried=false;}
+}
+
+/* ================= PRE-RACE DEMO DEFAULTS (auto-expire 08:00 Jul 11) ================= */
+(function(){
+  const cutoff=new Date(2026,6,11,8,0,0); // local 08:00 Sat Jul 11 2026
+  if(Date.now()>=cutoff.getTime())return;
+  if(!$('inLat').value&&!$('inLon').value){
+    $('inLat').value='41.88900'; $('inLon').value='-87.57600'; // ~0.75 nm E of Chicago Hbr breakwater S light (approx)
+    renderSun(41.889,-87.576);
+  }
+  if(!$('inStart').value)$('inStart').value='2026-07-11T12:20';
+  $('routeStat').textContent='Pre-race defaults loaded: boat at the start line, route start 12:20 Sat (Section 4 gun). Live GPS overrides position.';
+  wpRender();
+  autoWind();
+})();
 
 /* ================= SERVICE WORKER (offline) ================= */
 if('serviceWorker' in navigator){try{navigator.serviceWorker.register('sw.js');}catch(e){}}
